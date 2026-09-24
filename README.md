@@ -48,12 +48,3 @@ npx expo run:android    # real device/emulator, required for wallet signing (MWA
 
 Copy `.env` and point `EXPO_PUBLIC_API_URL` at a running backend (defaults to the deployed Render
 instance). `EXPO_PUBLIC_SOLANA_NETWORK` defaults to `devnet`, matching the backend's default.
-
-## What's finished
-
-- Live market list and detail screens, wired to 100% real backend data — no mock/seed data anywhere in the app
-- Real order execution: connect a real wallet (MWA), sign, and submit a real transaction; the backend verifies it on-chain before a receipt is ever marked verified. Proven end-to-end on devnet.
-- Real pre-trade analysis (fill estimate, price impact, fee breakdown, live Jupiter venue comparison)
-- Real wallet connect/reauthorize/disconnect, with the session persisted securely on-device
-- Real receipts, alerts, and platform fee/revenue screens
-- Full light-theme visual design pass (color, typography, iconography) with real shadows/elevation and press feedback throughout
