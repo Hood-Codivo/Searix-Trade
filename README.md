@@ -1,146 +1,31 @@
 # Searix Trade
 
-A mobile-first transparency and trading interface for Solana central-limit-order-book markets.
+A mobile-first trading companion for Solana's on-chain order-book markets — built around one idea: you should be able to see what you're about to trade into before you commit to it.
 
-## Current milestone
+## The problem
 
-The repository currently contains the read-only V1 product shell:
+On-chain order books are transparent in theory — every quote, every fill, every level of depth is public. In practice, almost none of that transparency reaches the person about to tap "buy" on their phone. Most mobile trading apps show a price and ask you to trust it. Searix Trade shows the market underneath the price: how tight the spread really is, how much depth actually backs it, and whether recent activity looks clean or worth a second look — before you commit any funds.
 
-- market discovery with quality badges and depth imbalance
-- responsive price and cumulative depth charts
-- execution-quality metrics and careful fairness language
-- fixture data behind typed market models
+## What it does
 
-The mobile application now reads this data from the separate Fastify service in `backend/`. Start that service before the app:
+**Market discovery.** Browse active markets with an at-a-glance read on execution quality — not just price and 24h change, but spread, depth, and a plain-language quality signal that flags when a book looks thin or one-sided.
 
-```powershell
-cd backend
-npm install
-npm start
-```
+**Market depth, visualized.** Price history and cumulative depth are rendered as real charts, not a single flat number, so you can see the shape of the book rather than take it on faith.
 
-In another terminal:
+**Fairness language you can act on.** Every market carries a short, honest explanation of what its quality signal means — described as a signal worth weighing, never as financial advice or proof of anything.
 
-```powershell
-npm start
-```
+**Your own wallet, your own keys.** Connect the Solana wallet you already use. Searix Trade never asks for, sees, or stores a private key — signing happens entirely inside your wallet app.
 
-Set `EXPO_PUBLIC_API_URL` when the backend is not available at `http://127.0.0.1:4000`. Android Emulator commonly uses `http://10.0.2.2:4000` to reach the host machine.
+**Transparent economics.** Any fee the platform takes is stated plainly, not buried — including while that fee isn't yet being collected.
 
-- explicit empty, loading, error, and preview states
+## Design philosophy
 
-Wallet signing, live Phoenix ingestion, and order submission are intentionally not connected yet.
+Searix Trade is opinionated about honesty over polish-that-hides-things: empty states say when there's nothing to show, error states say when something couldn't load, and preview states are labeled as previews. Nothing pretends to be more finished than it is.
 
-## Run locally
+## Status
 
-```bash
-npm install
-npm run web
-```
+Searix Trade is under active development. Market discovery and wallet connection are live today; placing and managing trades directly from the app is the next major milestone.
 
-For native wallet integrations, use an Expo custom development build rather than Expo Go.
+## Contributing
 
-### Android development build over USB
-
-Enable USB debugging on the phone, connect it, and accept the debugging prompt.
-With the Android SDK and Java installed, build and install the development app:
-
-```bash
-npm install
-adb devices
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:4000 tcp:4000
-npm run android
-```
-
-Select the connected phone when prompted. After the initial installation, start
-Metro over USB with the following commands and press `a` to open the app:
-
-```bash
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:4000 tcp:4000
-npm run start:android
-```
-
-Run the separate backend on port 4000 for market data. Rebuild with
-`npm run android` whenever native dependencies or native configuration change,
-including when adding MWA. Installing the development client alone does not
-implement wallet connectivity.
-
-Frontend — what is finished
-
-- Expo and React Native foundation
-- Dark Searix Trade design system
-- IBM Plex typography
-- Bottom navigation
-- Markets screen
-- Market search
-- Market rows
-- Price sparklines
-- Quality badges
-- Depth-imbalance indicators
-- Market Detail screen
-- Price chart
-- Cumulative depth chart
-- Execution-quality tiles
-- Fairness explanation
-- Buy and Sell preview
-- Loading, empty and API-error states
-- Frontend API client
-- Responsive mobile layout
-- Successful TypeScript and web builds
-
-Frontend — what is left
-Live market experience
-
-- Replace polling with the backend WebSocket stream
-- Display connection status accurately
-- Detect stale market data
-- Reconnect after network interruptions
-- Preserve the last valid market snapshot
-- Add real candlestick intervals
-- Add an order-book price ladder
-- Add complete market filters and sorting
-- Add watchlist persistence
-  Wallet integration
-- Wallet-selection screen
-- Android MWA 2.0
-- iOS Phantom integration
-- iOS Solflare universal/deep links
-- Jupiter Mobile Adapter
-- Connect, reconnect and disconnect states
-- Copy address and explorer links
-- Wallet-not-installed handling
-- Secure session persistence
-  Trading interface
-- Complete order ticket
-- Limit and market order selection
-- Price and quantity inputs
-- Balance validation
-- Slippage estimates
-- Complete fee breakdown
-- Transaction simulation result
-- Wallet confirmation flow
-- Transaction progress timeline
-- User rejection and timeout handling
-- Partial-fill display
-- Open orders and cancellation
-- Trade history
-  Additional screens
-- Portfolio
-- Open orders
-- Order history
-- Wallet settings
-- Watchlist
-- Alerts
-- Notification preferences
-- Subscription/paywall screens
-  Mobile release work
-- Android custom development build
-- iOS development build
-- App icons and splash screen
-- Deep-link configuration
-- Push notification configuration
-- Accessibility testing
-- Physical Android and iPhone testing
-- Play Store and App Store preparation
+This is a private, active project. If you have access to the codebase and want to get it running locally, ask a maintainer for setup details.
