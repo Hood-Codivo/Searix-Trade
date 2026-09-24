@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="gT" x1="0" x2="1">
+      <stop offset="0%" stop-color="#0ff2c2"/>
+      <stop offset="100%" stop-color="#7a5bff"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(300,260)">
+    <!-- T mark: horizontal bar and vertical column, with diagonal 'trade' notch -->
+    <rect x="-160" y="-80" width="320" height="56" rx="12" fill="url(#gT)"/>
+    <rect x="-34" y="-24" width="68" height="240" rx="12" fill="#071127"/>
+
+    <!-- diagonal notch (upward) to imply momentum -->
+    <path d="M40 60 L90 10 L110 30 L60 80 Z" fill="#ffffff" opacity="0.95"/>
+  </g>
+
+  <text x="300" y="540" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="44" fill="#071127">Searix <tspan fill="#2b4a6b">Trade</tspan></text>
+</svg>

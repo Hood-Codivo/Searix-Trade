@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="gS" x1="0" x2="1">
+      <stop offset="0%" stop-color="#0ff2c2"/>
+      <stop offset="100%" stop-color="#4cc7ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Clean S monogram with sharp terminals -->
+  <g transform="translate(300,300)">
+    <path d="M-110 -130 C-10 -200 150 -160 110 -60 C70 40 -40 40 30 140 C100 240 -60 260 -110 190" fill="none" stroke="url(#gS)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Secondary diagonal bar to hint X/T -->
+    <line x1="-70" y1="-70" x2="90" y2="90" stroke="#162038" stroke-width="12" stroke-linecap="round" opacity="0.25"/>
+  </g>
+
+  <text x="300" y="540" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="44" fill="#0b1020">Searix Trade</text>
+</svg>

@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Searix Trade",
+    "slug": "phoenix-lens",
+    "scheme": "searixtrade",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "backgroundColor": "#5B4FE8",
+      "resizeMode": "contain"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.searixtrade.mobile"
+    },
+    "android": {
+      "package": "app.searixtrade.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#5B4FE8"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "064315e8-23ed-46e5-b019-5d0859dab3f3"
+      }
+    }
+  }
+}

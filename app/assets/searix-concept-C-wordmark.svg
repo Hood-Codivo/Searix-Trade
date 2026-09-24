@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240">
+  <defs>
+    <linearGradient id="gradC" x1="0" x2="1">
+      <stop offset="0%" stop-color="#0ff2c2"/>
+      <stop offset="100%" stop-color="#4cc7ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: compact S + tick -->
+  <g transform="translate(80,120) scale(1)">
+    <path d="M-40 -60 q40 -30 80 0 q-40 30 -80 0 z" fill="url(#gradC)"/>
+    <polyline points="-10,20 30,-20 90,40" stroke="#0b1020" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Custom wordmark: tweaked letterforms, thicker S -->
+  <text x="220" y="150" font-family="sans-serif" font-weight="800" font-size="96" fill="#071127">Searix <tspan fill="#2b4a6b">Trade</tspan></text>
+
+  <!-- Ligature suggestion line -->
+  <line x1="320" y1="100" x2="380" y2="100" stroke="#0ff2c2" stroke-width="6" opacity="0.7"/>
+</svg>

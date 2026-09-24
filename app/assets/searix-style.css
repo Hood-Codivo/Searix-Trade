@@ -1,0 +1,22 @@
+/* Searix Trade brand snippet */
+:root{
+  --searix-gradient-start:#0ff2c2;
+  --searix-gradient-mid:#4cc7ff;
+  --searix-gradient-end:#7a5bff;
+  --searix-dark:#0b1020;
+  --searix-accent:#162038;
+  --searix-font-family: Inter, Roboto, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial;
+}
+
+.brand {
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  color:var(--searix-dark);
+  font-family:var(--searix-font-family);
+  font-weight:700;
+}
+
+.brand svg{height:34px;width:34px}
+.brand .name{font-size:20px;letter-spacing:0.6px}
+.brand .trade{color:var(--searix-accent);font-weight:600}

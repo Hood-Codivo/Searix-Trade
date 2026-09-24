@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="gradB" x1="0" x2="1">
+      <stop offset="0%" stop-color="#00d3a6"/>
+      <stop offset="60%" stop-color="#3db6ff"/>
+      <stop offset="100%" stop-color="#7a5bff"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(300,200)">
+    <!-- Shield shape -->
+    <path d="M0 -160 L120 -80 L120 20 C120 120 30 190 0 220 C-30 190 -120 120 -120 20 L-120 -80 Z" fill="url(#gradB)" stroke="#071127" stroke-width="6"/>
+
+    <!-- Arrow integrated: negative space arrow-up inside shield -->
+    <path d="M-40 20 L0 -60 L40 20 L10 20 L10 80 L-10 80 L-10 20 Z" fill="#ffffff"/>
+
+    <!-- Small S ligature overlay to unify brand -->
+    <path d="M-70 -20 C-60 -60 -10 -70 10 -40" stroke="#071127" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="300" y="540" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="48" fill="#071127">Searix <tspan fill="#2b4a6b">Trade</tspan></text>
+</svg>

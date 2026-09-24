@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="gX" x1="0" x2="1">
+      <stop offset="0%" stop-color="#4cc7ff"/>
+      <stop offset="100%" stop-color="#7a5bff"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(300,300)">
+    <!-- Bold X constructed from intersecting tapered bars -->
+    <path d="M-160 -200 L-70 -40 L-170 40 L-60 200 L40 70 L150 200 L260 40 L150 -40 L240 -200 L130 -120 L40 -260 Z" fill="url(#gX)" stroke="#071127" stroke-width="6"/>
+
+    <!-- small S curve nested in the center for brand recognition -->
+    <path d="M-30 -10 C-10 -40 40 -40 20 -10 C0 20 -40 20 -10 50" stroke="#071127" stroke-width="10" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <text x="300" y="540" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="44" fill="#071127">Searix <tspan fill="#2b4a6b">Trade</tspan></text>
+</svg>
