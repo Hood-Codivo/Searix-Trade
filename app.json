@@ -12,7 +12,10 @@
       "backgroundColor": "#5B4FE8",
       "resizeMode": "contain"
     },
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
     "experiments": {
       "typedRoutes": true
     },
@@ -33,7 +36,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "064315e8-23ed-46e5-b019-5d0859dab3f3"
+        "projectId": "016a601f-8c16-4125-93fa-517862da7d91"
       }
     }
   }
