@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Info, Radio, ShieldCheck, Star } from 'lucide-react-native';
-import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, LayoutChangeEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AssetRegistryCard } from '@/components/AssetRegistryCard';
 import { DepthChart } from '@/components/DepthChart';
@@ -23,7 +23,7 @@ type ChartTab = 'Price' | 'Depth';
 const CANDLE_RANGE: CandleRange = '1m';
 
 export default function MarketDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, side: sideParam } = useLocalSearchParams<{ id: string; side?: string }>();
   const { data: market, error, loading, retry } = useMarket(id);
   const [chartTab, setChartTab] = useState<ChartTab>('Price');
   const { data: candles } = useCandles(id, CANDLE_RANGE);
@@ -36,6 +36,8 @@ export default function MarketDetail() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
+      {/* Lifts the page while the amount keyboard is open, so the input being typed into stays visible. */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.nav}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><ArrowLeft color={colors.text} size={21} /></Pressable><View style={styles.navTitle}><Text style={styles.pair}>{market.base}/{market.quote}</Text><View style={styles.venueLine}><Radio color={colors.green} size={11} /><Text style={styles.venue}>{market.venue} · Mainnet</Text></View></View><Pressable accessibilityLabel="Add market to watchlist" style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><Star color={colors.text} size={20} /></Pressable></View>
         <View style={styles.priceCard}>
@@ -63,17 +65,18 @@ export default function MarketDetail() {
           <Text style={styles.disclaimer}>This is a market signal, not proof of manipulation or financial advice.</Text>
         </View>
 
-        <ExecutionLab market={market} />
+        <ExecutionLab market={market} initialSide={sideParam === 'sell' ? 'sell' : 'buy'} />
         {market.assetClass === 'tokenized-stock' ? <AssetRegistryCard symbol={market.base} /> : null}
 
         <View style={styles.endNote}><Text style={styles.endNoteTitle}>Built for better fills</Text><Text style={styles.endNoteCopy}>Analysis uses the latest visible order book. It is an estimate, not a guaranteed execution price.</Text></View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: colors.canvas, flex: 1 }, content: { padding: spacing.lg },
+  safe: { backgroundColor: colors.canvas, flex: 1 }, flex: { flex: 1 }, content: { padding: spacing.lg },
   nav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, iconButton: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
   navTitle: { alignItems: 'center' }, pair: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 16 }, venueLine: { alignItems: 'center', flexDirection: 'row', gap: 5, marginTop: 2 }, venue: { color: colors.textSubtle, fontFamily: font.sans, fontSize: 11 },
   priceCard: { backgroundColor: colors.surface, borderRadius: radius.xl, marginTop: spacing.xl, padding: spacing.lg, ...shadow.raised }, priceLine: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' }, price: { color: colors.text, fontFamily: font.monoMedium, fontSize: 36, fontVariant: ['tabular-nums'], letterSpacing: -1 }, change: { fontFamily: font.mono, fontSize: 12, marginTop: 5 }, marketMeta: { alignItems: 'center', borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, paddingTop: spacing.md }, marketMetaText: { color: colors.textSubtle, fontFamily: font.mono, fontSize: 10 }, metaDot: { backgroundColor: colors.borderStrong, borderRadius: 2, height: 3, width: 3 },

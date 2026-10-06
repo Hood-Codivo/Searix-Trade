@@ -199,3 +199,9 @@ export type WalletHolding = {
   usdReceived: number;
   averageBuyPrice: number | null;
 };
+
+// On-chain balances for a wallet: native SOL plus every non-zero token account.
+export type WalletBalances = {
+  solBalance: number;
+  tokens: Array<{ mint: string; amount: number; decimals: number }>;
+};

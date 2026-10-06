@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Bell, Binoculars, ChartNoAxesCombined, CircleUserRound, FileCheck2 } from 'lucide-react-native';
+import { ArrowLeftRight, Bell, Binoculars, ChartNoAxesCombined, CircleUserRound } from 'lucide-react-native';
 import { colors, font } from '@/theme';
 
 export default function TabsLayout() {
@@ -15,7 +15,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Markets', tabBarIcon: ({ color }) => <ChartNoAxesCombined color={color} size={21} /> }} />
       <Tabs.Screen name="watchlist" options={{ title: 'Watchlist', tabBarIcon: ({ color }) => <Binoculars color={color} size={21} /> }} />
-      <Tabs.Screen name="receipts" options={{ title: 'Receipts', tabBarIcon: ({ color }) => <FileCheck2 color={color} size={21} /> }} />
+      <Tabs.Screen name="transactions" options={{ title: 'Transactions', tabBarIcon: ({ color }) => <ArrowLeftRight color={color} size={21} /> }} />
       <Tabs.Screen name="alerts" options={{ title: 'Alerts', tabBarIcon: ({ color }) => <Bell color={color} size={21} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <CircleUserRound color={color} size={21} /> }} />
     </Tabs>

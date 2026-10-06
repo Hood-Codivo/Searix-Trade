@@ -1,5 +1,6 @@
 import type {
   Alert,
+  WalletBalances,
   WalletHolding,
   AssetRegistryEntry,
   BuiltExecutionTransaction,
@@ -62,6 +63,8 @@ export const marketApi = {
     request<ExecutionReceipt[]>("/v1/execution-receipts", { signal }),
   walletExecutions: (address: string, signal?: AbortSignal) =>
     request<ExecutionReceipt[]>(`/v1/wallets/${encodeURIComponent(address)}/executions`, { signal }),
+  walletBalances: (address: string, signal?: AbortSignal) =>
+    request<WalletBalances>(`/v1/wallets/${encodeURIComponent(address)}/balances`, { signal }),
   walletHoldings: (address: string, signal?: AbortSignal) =>
     request<WalletHolding[]>(`/v1/wallets/${encodeURIComponent(address)}/holdings`, { signal }),
   buildExecutionTransaction: (id: string, side: TradeSide, amountUsd: number, userPublicKey: string) =>

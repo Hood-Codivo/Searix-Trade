@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Building2, Calculator, Check, ExternalLink, FileCheck2, FileText, Gauge, Layers3, ShieldAlert, Wallet } from 'lucide-react-native';
 import { ErrorToast } from '@/components/ErrorToast';
-import { WalletActivity } from '@/components/WalletActivity';
 import { useWallet } from '@/context/WalletProvider';
 import { useExecuteOrder } from '@/hooks/useMarkets';
 import { marketApi } from '@/services/api';
@@ -23,10 +22,10 @@ const signLabels: Record<string, string> = {
   confirming: 'Confirming on-chain…',
 };
 
-export function ExecutionLab({ market }: { market: Market }) {
+export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; initialSide?: TradeSide }) {
   const { account, network, connect } = useWallet();
   const execOrder = useExecuteOrder(market.id);
-  const [side, setSide] = useState<TradeSide>('buy');
+  const [side, setSide] = useState<TradeSide>(initialSide);
   const [amount, setAmount] = useState('1000');
   const [quote, setQuote] = useState<ExecutionQuote | null>(null);
   const [loading, setLoading] = useState(false);
@@ -181,7 +180,7 @@ export function ExecutionLab({ market }: { market: Market }) {
           {quote.warning ? <View style={styles.warning}><ShieldAlert color={colors.amber} size={17} /><Text style={styles.warningText}>{quote.warning}</Text></View> : null}
           <View style={styles.aiCard}><View style={styles.aiHeading}><FileText color={colors.amber} size={17} /><Text style={styles.aiTitle}>Searix explanation</Text></View><Text style={styles.aiCopy}>{quote.explanation}</Text><Text style={styles.aiEvidence}>Based on sequence {market.sequence ?? '—'} · {new Date(quote.observedAt).toLocaleTimeString()}</Text></View>
           <Pressable accessibilityRole="button" accessibilityState={{ busy: saving, disabled: saving || Boolean(savedReceiptId) }} disabled={saving || Boolean(savedReceiptId)} onPress={() => void saveReceipt()} style={({ pressed }) => [styles.receiptButton, pressed && styles.pressed, (saving || savedReceiptId) && styles.receiptButtonSaved]}>{savedReceiptId ? <Check color={colors.green} size={17} /> : <FileCheck2 color={colors.text} size={17} />}<Text style={[styles.receiptButtonText, savedReceiptId && styles.receiptButtonTextSaved]}>{saving ? 'Saving analysis…' : savedReceiptId ? 'Analysis receipt saved' : 'Save analysis receipt'}</Text></Pressable>
-          {savedReceiptId ? <><Text style={styles.receiptId}>Unverified receipt · {savedReceiptId}</Text><Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/receipts')} style={({ pressed }) => [styles.viewReceiptsButton, pressed && styles.pressed]}><Text style={styles.viewReceiptsText}>View receipt history</Text></Pressable></> : null}
+          {savedReceiptId ? <><Text style={styles.receiptId}>Unverified receipt · {savedReceiptId}</Text><Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/profile')} style={({ pressed }) => [styles.viewReceiptsButton, pressed && styles.pressed]}><Text style={styles.viewReceiptsText}>View receipts in profile</Text></Pressable></> : null}
           {!previewing ? (
             <Pressable accessibilityRole="button" onPress={() => setPreviewing(true)} style={({ pressed }) => [styles.previewButton, pressed && styles.pressed]}><Text style={styles.previewButtonText}>Preview {side} order</Text></Pressable>
           ) : (
@@ -238,7 +237,6 @@ export function ExecutionLab({ market }: { market: Market }) {
           )}
         </View>
       ) : null}
-      {account ? <WalletActivity address={account.address} /> : null}
       {execOrder.error ? <ErrorToast key={execOrder.error} message={execOrder.error} /> : null}
     </View>
   );

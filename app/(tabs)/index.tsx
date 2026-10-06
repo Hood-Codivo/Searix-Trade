@@ -31,7 +31,7 @@ const TICKER_IDS = ["aaplx-usdc", "tslax-usdc", "nvdax-usdc"];
 
 const QUICK_ACTIONS = [
   { label: "Watchlist", Icon: Binoculars, href: "/(tabs)/watchlist" as const },
-  { label: "Receipts", Icon: FileCheck2, href: "/(tabs)/receipts" as const },
+  { label: "Receipts", Icon: FileCheck2, href: "/(tabs)/profile" as const },
   { label: "Alerts", Icon: Bell, href: "/(tabs)/alerts" as const },
 ];
 
@@ -73,7 +73,7 @@ export default function MarketsScreen() {
               <View style={styles.topActions}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => router.push("/(tabs)/receipts")}
+                  onPress={() => router.push("/(tabs)/profile")}
                   style={({ pressed }) => [styles.portfolioPill, pressed && styles.controlPressed]}
                 >
                   <Text style={styles.portfolioPillText}>Portfolio</Text>

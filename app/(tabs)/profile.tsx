@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { Check, Copy, ExternalLink, LogOut, Receipt, ShieldCheck, WalletCards } from 'lucide-react-native';
 import { useWallet } from '@/context/WalletProvider';
-import { usePlatformInfo } from '@/hooks/useMarkets';
+import { usePlatformInfo, useReceipts } from '@/hooks/useMarkets';
+import { WalletPortfolio } from '@/components/WalletPortfolio';
+import { ReceiptCard } from '@/components/ReceiptCard';
+import { router, type Href } from 'expo-router';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatAddress, formatCompactUsd } from '@/utils/format';
 
@@ -12,6 +15,7 @@ export default function Profile() {
   const { status, account, error, connect, disconnect } = useWallet();
   const [copied, setCopied] = useState(false);
   const { fees, revenue } = usePlatformInfo();
+  const receipts = useReceipts();
 
   const copyAddress = async () => {
     if (!account) return;
@@ -22,7 +26,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>WALLET</Text>
         <Text style={styles.title}>Your wallet</Text>
 
@@ -84,6 +88,8 @@ export default function Profile() {
           </View>
         )}
 
+        {status === 'connected' && account ? <WalletPortfolio address={account.address} /> : null}
+
         <Text style={[styles.eyebrow, styles.platformEyebrow]}>PLATFORM</Text>
         <Text style={styles.platformTitle}>Fees & transparency</Text>
         <View style={styles.card}>
@@ -124,14 +130,33 @@ export default function Profile() {
             <Text style={styles.platformFoot}>{fees.error ?? 'Loading platform info…'}</Text>
           )}
         </View>
-      </View>
+
+        <Text style={[styles.eyebrow, styles.platformEyebrow]}>ANALYSIS</Text>
+        <Text style={styles.platformTitle}>Analysis receipts</Text>
+        <Text style={styles.platformFoot}>Saved checks of prices, liquidity and routes before each trade. Unverified until a transaction is attached.</Text>
+        {receipts.data.length === 0 && !receipts.loading ? (
+          <View style={styles.card}><Text style={styles.platformFoot}>{receipts.error ?? 'No analysis receipts yet. Analyze an order on a market, then save it.'}</Text></View>
+        ) : null}
+        {receipts.data.slice(0, 3).map((receipt) => (
+          <View key={receipt.id} style={styles.receiptGap}>
+            <ReceiptCard receipt={receipt} />
+          </View>
+        ))}
+        {receipts.data.length > 3 ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push('/receipts' as Href)} style={({ pressed }) => [styles.secondaryButton, styles.seeAll, pressed && styles.pressed]}>
+            <Text style={styles.secondaryText}>See all {receipts.data.length} receipts</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
-  content: { padding: spacing.lg },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  receiptGap: { marginTop: spacing.md },
+  seeAll: { marginTop: spacing.md },
   eyebrow: { color: colors.textMuted, fontFamily: font.monoMedium, fontSize: 11, letterSpacing: 1.1, marginTop: spacing.md },
   title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 28, letterSpacing: -0.5, marginBottom: spacing.xl, marginTop: spacing.xs },
   card: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, padding: spacing.xl },
