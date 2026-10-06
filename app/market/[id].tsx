@@ -4,6 +4,8 @@ import { ArrowLeft, Info, Radio, ShieldCheck, Star } from 'lucide-react-native';
 import { KeyboardAvoidingView, LayoutChangeEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AssetRegistryCard } from '@/components/AssetRegistryCard';
+import { PremiumCard } from '@/components/PremiumCard';
+import { AlertRuleCard } from '@/components/AlertRuleCard';
 import { DepthChart } from '@/components/DepthChart';
 import { ExecutionLab } from '@/components/ExecutionLab';
 import { MetricTile } from '@/components/MetricTile';
@@ -65,7 +67,9 @@ export default function MarketDetail() {
           <Text style={styles.disclaimer}>This is a market signal, not proof of manipulation or financial advice.</Text>
         </View>
 
+        <AlertRuleCard market={market} />
         <ExecutionLab market={market} initialSide={sideParam === 'sell' ? 'sell' : 'buy'} />
+        {market.assetClass === 'tokenized-stock' ? <PremiumCard market={market} /> : null}
         {market.assetClass === 'tokenized-stock' ? <AssetRegistryCard symbol={market.base} /> : null}
 
         <View style={styles.endNote}><Text style={styles.endNoteTitle}>Built for better fills</Text><Text style={styles.endNoteCopy}>Analysis uses the latest visible order book. It is an estimate, not a guaranteed execution price.</Text></View>

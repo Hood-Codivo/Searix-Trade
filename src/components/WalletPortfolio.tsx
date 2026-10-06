@@ -3,7 +3,7 @@ import { router, useFocusEffect, type Href } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { marketApi } from '@/services/api';
-import type { Market, WalletBalances, WalletHolding } from '@/types/market';
+import type { Market, PositionPnl, WalletBalances, WalletHolding } from '@/types/market';
 import { colors, font, radius, spacing } from '@/theme';
 import { sellRouteFor } from '@/utils/tradeLinks';
 
@@ -18,11 +18,12 @@ const KNOWN_MINTS: Record<string, string> = {
 
 const shortMint = (mint: string) => `${mint.slice(0, 4)}…${mint.slice(-4)}`;
 
-// Your on-chain balances and what your confirmed trades add up to. Reloads every time the screen
-// opens, so a trade you just made shows up. Tapping a token opens its analysis with sell selected.
+// Your on-chain balances, what your confirmed trades add up to, and profit and loss per asset.
+// Reloads every time the screen opens. Tapping a token or holding opens its analysis with sell selected.
 export function WalletPortfolio({ address }: { address: string }) {
   const [balances, setBalances] = useState<WalletBalances | null>(null);
   const [holdings, setHoldings] = useState<WalletHolding[]>([]);
+  const [pnl, setPnl] = useState<PositionPnl[]>([]);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,14 +31,16 @@ export function WalletPortfolio({ address }: { address: string }) {
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const [nextBalances, nextHoldings, nextMarkets] = await Promise.all([
+      const [nextBalances, nextHoldings, nextMarkets, nextPnl] = await Promise.all([
         marketApi.walletBalances(address, signal),
         marketApi.walletHoldings(address, signal),
         marketApi.list(signal),
+        marketApi.walletPnl(address, signal),
       ]);
       setBalances(nextBalances);
       setHoldings(nextHoldings);
       setMarkets(nextMarkets);
+      setPnl(nextPnl);
       setError(null);
     } catch (err: unknown) {
       if (signal?.aborted) return;
@@ -86,19 +89,30 @@ export function WalletPortfolio({ address }: { address: string }) {
 
       <Text style={[styles.title, styles.holdingsTitle]}>Holdings</Text>
       {!loading && !error && holdings.length === 0 ? <Text style={styles.muted}>No confirmed trades yet.</Text> : null}
-      {holdings.map((row) => (
-        <Pressable key={row.symbol} accessibilityRole="button" onPress={() => openSell({ symbol: row.symbol })} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-          <View style={styles.flex}>
-            <Text style={styles.asset}>{row.symbol}</Text>
-            <Text style={styles.muted}>bought {row.boughtBase} · sold {row.soldBase}</Text>
-          </View>
-          <View style={styles.right}>
-            <Text style={styles.value}>{row.netBase}</Text>
-            {row.averageBuyPrice !== null ? <Text style={styles.muted}>avg ${row.averageBuyPrice}</Text> : null}
-          </View>
-          <ChevronRight color={colors.textSubtle} size={16} />
-        </Pressable>
-      ))}
+      {holdings.map((row) => {
+        const position = pnl.find((item) => item.symbol === row.symbol);
+        const unrealized = position?.unrealizedPnlUsd ?? null;
+        return (
+          <Pressable key={row.symbol} accessibilityRole="button" onPress={() => openSell({ symbol: row.symbol })} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <View style={styles.flex}>
+              <Text style={styles.asset}>{row.symbol}</Text>
+              <Text style={styles.muted}>bought {row.boughtBase} · sold {row.soldBase}</Text>
+              {position?.averageCostUsd !== null && position?.averageCostUsd !== undefined ? <Text style={styles.muted}>avg cost ${position.averageCostUsd.toFixed(2)}</Text> : null}
+            </View>
+            <View style={styles.right}>
+              <Text style={styles.value}>{row.netBase}</Text>
+              {position?.marketValueUsd !== null && position?.marketValueUsd !== undefined ? <Text style={styles.muted}>worth ${position.marketValueUsd.toFixed(2)}</Text> : null}
+              {unrealized !== null ? (
+                <Text style={[styles.pnl, { color: unrealized >= 0 ? colors.green : colors.red }]}>
+                  {unrealized >= 0 ? '+' : '-'}${Math.abs(unrealized).toFixed(2)} unrealized
+                </Text>
+              ) : null}
+              {position ? <Text style={styles.muted}>realized ${position.realizedPnlUsd.toFixed(2)}</Text> : null}
+            </View>
+            <ChevronRight color={colors.textSubtle} size={16} />
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -126,6 +140,7 @@ const styles = StyleSheet.create({
   asset: { color: colors.text, flex: 1, fontFamily: font.sansMedium, fontSize: 13 },
   value: { color: colors.text, fontFamily: font.monoMedium, fontSize: 13, fontVariant: ['tabular-nums'] },
   muted: { color: colors.textSubtle, fontFamily: font.sans, fontSize: 11, marginTop: 2 },
+  pnl: { fontFamily: font.monoMedium, fontSize: 11, marginTop: 2 },
   error: { color: colors.red, fontFamily: font.sans, fontSize: 12, marginTop: spacing.sm },
   pressed: { opacity: 0.7 },
 });

@@ -1,5 +1,7 @@
 import type {
   Alert,
+  AlertRule,
+  PositionPnl,
   WalletBalances,
   WalletHolding,
   AssetRegistryEntry,
@@ -65,6 +67,8 @@ export const marketApi = {
     request<ExecutionReceipt[]>(`/v1/wallets/${encodeURIComponent(address)}/executions`, { signal }),
   walletBalances: (address: string, signal?: AbortSignal) =>
     request<WalletBalances>(`/v1/wallets/${encodeURIComponent(address)}/balances`, { signal }),
+  walletPnl: (address: string, signal?: AbortSignal) =>
+    request<PositionPnl[]>(`/v1/wallets/${encodeURIComponent(address)}/pnl`, { signal }),
   walletHoldings: (address: string, signal?: AbortSignal) =>
     request<WalletHolding[]>(`/v1/wallets/${encodeURIComponent(address)}/holdings`, { signal }),
   buildExecutionTransaction: (id: string, side: TradeSide, amountUsd: number, userPublicKey: string) =>
@@ -84,7 +88,15 @@ export const marketApi = {
     request<RevenueSummary>("/v1/revenue/summary", { signal }),
   feesConfig: (signal?: AbortSignal) =>
     request<FeesConfig>("/v1/fees/config", { signal }),
-  listAlerts: (signal?: AbortSignal) => request<Alert[]>("/v1/alerts", { signal }),
+  // Market-wide alerts, plus this wallet's own rule alerts when a wallet is given.
+  listAlerts: (wallet?: string, signal?: AbortSignal) =>
+    request<Alert[]>(wallet ? `/v1/alerts?wallet=${encodeURIComponent(wallet)}` : "/v1/alerts", { signal }),
+  listAlertRules: (wallet: string, signal?: AbortSignal) =>
+    request<AlertRule[]>(`/v1/alert-rules?wallet=${encodeURIComponent(wallet)}`, { signal }),
+  createAlertRule: (rule: { walletAddress: string; marketId: string; kind: "price" | "premium"; direction: "above" | "below"; threshold: number }) =>
+    request<AlertRule>("/v1/alert-rules", { method: "POST", body: JSON.stringify(rule) }),
+  deleteAlertRule: (id: string, wallet: string) =>
+    request<{ removed: true }>(`/v1/alert-rules/${encodeURIComponent(id)}?wallet=${encodeURIComponent(wallet)}`, { method: "DELETE" }),
   registryEntry: (symbol: string, signal?: AbortSignal) =>
     request<AssetRegistryEntry>(`/v1/registry/${encodeURIComponent(symbol)}`, { signal }),
 };

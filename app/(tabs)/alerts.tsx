@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Bell, RefreshCw, TriangleAlert } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAlerts } from '@/hooks/useMarkets';
+import { useWallet } from '@/context/WalletProvider';
 import { colors, font, radius, spacing } from '@/theme';
 import type { Alert, AlertSeverity } from '@/types/market';
 
@@ -10,7 +11,8 @@ const SEVERITY_COLOR: Record<AlertSeverity, string> = { watch: colors.amber, war
 const SEVERITY_LABEL: Record<AlertSeverity, string> = { watch: 'WATCH', warning: 'WARNING' };
 
 export default function AlertsScreen() {
-  const { data: alerts, loading, error, retry } = useAlerts();
+  const { account } = useWallet();
+  const { data: alerts, loading, error, retry } = useAlerts(account?.address);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>

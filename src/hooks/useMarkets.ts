@@ -113,17 +113,17 @@ export function useReceipts() {
   return { ...resource, retry: load };
 }
 
-export function useAlerts() {
+export function useAlerts(wallet?: string) {
   const [resource, setResource] = useState<Resource<Alert[]>>({ data: [], error: null, loading: true });
   const load = useCallback(async () => {
     setResource((current) => ({ ...current, error: null, loading: current.data.length === 0 }));
     try {
-      const data = await marketApi.listAlerts();
+      const data = await marketApi.listAlerts(wallet);
       setResource({ data, error: null, loading: false });
     } catch (error) {
       setResource((current) => ({ ...current, error: error instanceof Error ? error.message : 'Couldn’t load alerts.', loading: false }));
     }
-  }, []);
+  }, [wallet]);
 
   useEffect(() => {
     void load();

@@ -91,6 +91,7 @@ export type ExecutionQuote = {
   qualityScore: number;
   qualityLabel: 'Efficient' | 'Acceptable' | 'Expensive';
   warning: string | null;
+  topOfBook: { price: number; size: number } | null;
   explanation: string;
   observedAt: string;
   venueQuotes: Array<{
@@ -165,10 +166,11 @@ export type Alert = {
   id: string;
   marketId: string;
   symbol: string;
-  kind: 'premium-deterioration';
+  kind: 'premium-deterioration' | 'rule-triggered';
   severity: AlertSeverity;
-  premiumBps: number;
-  thresholdBps: number;
+  premiumBps: number | null;
+  thresholdBps: number | null;
+  walletAddress?: string;
   message: string;
   createdAt: string;
 };
@@ -204,4 +206,27 @@ export type WalletHolding = {
 export type WalletBalances = {
   solBalance: number;
   tokens: Array<{ mint: string; amount: number; decimals: number }>;
+};
+
+// Average-cost profit and loss for one asset, marked to the live market price.
+export type PositionPnl = {
+  symbol: string;
+  quantity: number;
+  averageCostUsd: number | null;
+  costBasisUsd: number;
+  currentPriceUsd: number | null;
+  marketValueUsd: number | null;
+  unrealizedPnlUsd: number | null;
+  realizedPnlUsd: number;
+};
+
+// A threshold a user set on one market. Fires when the price or premium crosses it.
+export type AlertRule = {
+  id: string;
+  walletAddress: string;
+  marketId: string;
+  kind: 'price' | 'premium';
+  direction: 'above' | 'below';
+  threshold: number;
+  createdAt: string;
 };
