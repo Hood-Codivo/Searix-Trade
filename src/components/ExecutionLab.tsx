@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Building2, Calculator, Check, ExternalLink, FileCheck2, FileText, Gauge, Layers3, ShieldAlert, Wallet } from 'lucide-react-native';
+import { ErrorToast } from '@/components/ErrorToast';
+import { WalletActivity } from '@/components/WalletActivity';
 import { useWallet } from '@/context/WalletProvider';
 import { useExecuteOrder } from '@/hooks/useMarkets';
 import { marketApi } from '@/services/api';
@@ -173,7 +175,7 @@ export function ExecutionLab({ market }: { market: Market }) {
           <View style={styles.venueCard}>
             <View style={styles.aiHeading}><Building2 color={colors.blue} size={17} /><Text style={styles.aiTitle}>Venue comparison</Text></View>
             <Text style={styles.venueDisclosure}>Phoenix quotes the live order book. The Jupiter row, when shown, is a real routed quote fetched from Jupiter's aggregator for this same trade — not an estimate.</Text>
-            {quote.venueQuotes.map((venue) => <View key={venue.venue} style={styles.venueRow}><View style={styles.venueNameLine}><Text style={styles.venueName}>{venue.venue}</Text><Text style={[styles.venueMode, venue.isLive && styles.venueModeLive]}>{venue.isLive ? 'LIVE' : 'UNAVAILABLE'}</Text></View><Text style={styles.venueMetric}>{venue.priceImpactBps.toFixed(1)} bps</Text>{venue.best ? <View style={styles.bestPill}><Text style={styles.bestText}>BEST</Text></View> : <View style={styles.bestSpacer} />}</View>)}
+            {quote.venueQuotes.map((venue) => <View key={venue.venue} style={styles.venueRow}><View style={styles.venueNameLine}><Text style={styles.venueName}>{venue.venue}</Text><Text style={[styles.venueMode, venue.isLive && styles.venueModeLive]}>{venue.isLive ? 'LIVE' : 'UNAVAILABLE'}</Text><Text style={{ color: colors.textSubtle, fontFamily: font.monoMedium, fontSize: 11, marginTop: 4 }}>{side === 'buy' ? `receive ${venue.expectedBase.toFixed(6)} ${market.base}` : `receive ${venue.expectedQuote.toFixed(2)}`}</Text></View><Text style={styles.venueMetric}>{venue.priceImpactBps.toFixed(1)} bps</Text>{venue.best ? <View style={styles.bestPill}><Text style={styles.bestText}>BEST</Text></View> : <View style={styles.bestSpacer} />}</View>)}
           </View>
           <View style={styles.liquidityLine}><Layers3 color={colors.blue} size={17} /><Text style={styles.liquidityCopy}>Up to <Text style={styles.liquidityStrong}>{formatCompactUsd(quote.safeSizeUsd)}</Text> is visible inside your 25 bps liquidity budget.</Text></View>
           {quote.warning ? <View style={styles.warning}><ShieldAlert color={colors.amber} size={17} /><Text style={styles.warningText}>{quote.warning}</Text></View> : null}
@@ -236,6 +238,8 @@ export function ExecutionLab({ market }: { market: Market }) {
           )}
         </View>
       ) : null}
+      {account ? <WalletActivity address={account.address} /> : null}
+      {execOrder.error ? <ErrorToast key={execOrder.error} message={execOrder.error} /> : null}
     </View>
   );
 }

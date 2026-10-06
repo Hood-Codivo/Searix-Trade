@@ -53,7 +53,8 @@ function rethrowKnownFailures(error: unknown): never {
       "No wallet app that supports Mobile Wallet Adapter was found on this device.",
     );
   }
-  if (/cancelled by user|association cancelled/i.test(message)) {
+  // Android surfaces a dismissed wallet sheet as a java.util.concurrent.CancellationException.
+  if (/cancelled by user|association cancelled|cancellation(exception)?/i.test(message)) {
     throw new WalletConnectionCancelledError(
       "Wallet connection was cancelled.",
     );

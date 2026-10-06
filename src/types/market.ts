@@ -98,6 +98,9 @@ export type ExecutionQuote = {
     averagePrice: number;
     priceImpactBps: number;
     estimatedTotalUsd: number;
+    // How much of the asset this route gives you (buy: received, sell: sold), and the USD side.
+    expectedBase: number;
+    expectedQuote: number;
     best: boolean;
     isLive: boolean;
   }>;
@@ -127,6 +130,9 @@ export type ExecutionReceipt = {
   phoenixFeeUsd: number;
   phoenixFeeBps: number;
   feeStatus: 'projected' | 'collected';
+  actualBaseAmount: number | null;
+  expectedBaseAmount: number;
+  walletAddress: string | null;
   contentHash: string;
 };
 
@@ -181,4 +187,15 @@ export type AssetRegistryEntry = {
   regulatoryFramework: string;
   tradingVenues: string[];
   sources: { label: string; url: string }[];
+};
+
+// Net position in one asset for a wallet, built from confirmed on-chain fills.
+export type WalletHolding = {
+  symbol: string;
+  boughtBase: number;
+  soldBase: number;
+  netBase: number;
+  usdSpent: number;
+  usdReceived: number;
+  averageBuyPrice: number | null;
 };
