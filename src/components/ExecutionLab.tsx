@@ -11,10 +11,8 @@ import { formatCompactUsd, formatPrice } from '@/utils/format';
 
 const presets = [250, 1_000, 5_000, 25_000];
 
-function explorerUrl(signature: string, network: ExecutionNetwork): string {
-  return network === 'devnet'
-    ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
-    : `https://explorer.solana.com/tx/${signature}`;
+function explorerUrl(signature: string, _network: ExecutionNetwork): string {
+  return `https://explorer.solana.com/tx/${signature}`;
 }
 
 const signLabels: Record<string, string> = {
@@ -188,8 +186,8 @@ export function ExecutionLab({ market }: { market: Market }) {
             <View style={styles.orderPreview}>
               <View style={styles.orderPreviewHeading}>
                 <Text style={styles.orderPreviewEyebrow}>SIGNING PREVIEW</Text>
-                <View style={[styles.networkPill, network === 'mainnet-beta' && styles.networkPillMainnet]}>
-                  <Text style={styles.networkPillText}>{network === 'mainnet-beta' ? 'MAINNET' : 'DEVNET'}</Text>
+                <View style={[styles.networkPill, styles.networkPillMainnet]}>
+                  <Text style={styles.networkPillText}>MAINNET</Text>
                 </View>
               </View>
               <View style={styles.orderRow}><Text style={styles.orderKey}>Order</Text><Text style={styles.orderValue}>{side === 'buy' ? 'Buy' : 'Sell'} {market.base} · ${quote.requestedUsd.toLocaleString()}</Text></View>
@@ -200,7 +198,7 @@ export function ExecutionLab({ market }: { market: Market }) {
                 <View style={styles.executedCard}>
                   <Check color={colors.green} size={18} />
                   <View style={styles.executedCopy}>
-                    <Text style={styles.executedTitle}>{execOrder.receipt.network === 'devnet' ? 'Devnet pipeline verified on-chain' : 'Order executed and verified on-chain'}</Text>
+                    <Text style={styles.executedTitle}>Order executed and verified on-chain</Text>
                     <Text style={styles.executedSignature}>{execOrder.receipt.transactionSignature}</Text>
                     <Pressable accessibilityRole="link" onPress={() => Linking.openURL(explorerUrl(execOrder.receipt!.transactionSignature!, execOrder.receipt!.network!))} style={({ pressed }) => [styles.explorerLink, pressed && styles.pressed]}>
                       <ExternalLink color={colors.blue} size={13} /><Text style={styles.explorerLinkText}>View on Solana Explorer</Text>
@@ -210,9 +208,7 @@ export function ExecutionLab({ market }: { market: Market }) {
               ) : (
                 <>
                   <Text style={styles.orderNotice}>
-                    {network === 'devnet'
-                      ? 'Devnet mode: this signs and submits a trivial self-transfer to prove the sign → submit → confirm pipeline works. It is not a real trade.'
-                      : 'This builds a real Jupiter swap transaction on Solana mainnet. Signing it moves real funds.'}
+                    This builds a real swap on Solana mainnet through the best route shown above. Signing it moves real funds.
                   </Text>
                   {execOrder.error ? <View style={styles.inlineError}><ShieldAlert color={colors.red} size={17} /><Text style={styles.inlineErrorText}>{execOrder.error}</Text></View> : null}
                   {!account ? (

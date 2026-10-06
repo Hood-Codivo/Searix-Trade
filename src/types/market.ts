@@ -103,7 +103,7 @@ export type ExecutionQuote = {
   }>;
 };
 
-export type ExecutionNetwork = 'devnet' | 'mainnet-beta';
+export type ExecutionNetwork = 'mainnet-beta';
 
 export type ExecutionReceipt = {
   id: string;
@@ -134,7 +134,8 @@ export type BuiltExecutionTransaction = {
   transactionBase64: string;
   lastValidBlockHeight: number;
   network: ExecutionNetwork;
-  kind: 'devnet-probe' | 'jupiter-swap';
+  kind: 'jupiter-swap' | 'phoenix-swap';
+  venue?: 'Phoenix' | 'Jupiter';
 };
 
 export type FeesConfig = {
