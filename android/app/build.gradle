@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'app.phoenixlens.mobile'
+    namespace 'app.searixtrade.mobile'
     defaultConfig {
-        applicationId 'app.phoenixlens.mobile'
+        applicationId 'app.searixtrade.mobile'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

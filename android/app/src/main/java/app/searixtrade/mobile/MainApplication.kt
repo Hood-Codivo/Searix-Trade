@@ -1,4 +1,4 @@
-package app.phoenixlens.mobile
+package app.searixtrade.mobile
 
 import android.app.Application
 import android.content.res.Configuration

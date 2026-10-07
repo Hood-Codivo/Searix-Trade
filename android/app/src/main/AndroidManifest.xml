@@ -25,8 +25,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="phoenixlens"/>
-        <data android:scheme="exp+phoenix-lens"/>
+        <data android:scheme="searixtrade"/>
+        <data android:scheme="exp+searix-trade"/>
       </intent-filter>
     </activity>
   </application>
