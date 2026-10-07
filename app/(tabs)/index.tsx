@@ -66,7 +66,7 @@ export default function MarketsScreen() {
             <View style={styles.topBar}>
               <View style={styles.brandLine}>
                 <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.brandMark}>
-                  <Image source={require('@/assets/images/brand-mark.png')} style={styles.brandMarkIcon} resizeMode="contain" />
+                  <Image source={require('../../assets/images/brand-mark.png')} style={styles.brandMarkIcon} resizeMode="contain" />
                 </LinearGradient>
                 <Text style={styles.brandText}>Searix Trade</Text>
               </View>
