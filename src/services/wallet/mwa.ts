@@ -12,8 +12,11 @@ import type {
 
 const APP_IDENTITY = {
   name: "Searix Trade",
-  uri: "https://clob-backend.onrender.com",
-  icon: "favicon.ico",
+  uri: "https://searixtrade.com",
+  // Resolved against `uri` into an absolute URL the wallet app fetches over HTTP to show on its
+  // connect/sign screens -- it must be a real path on the live site, not a local asset.
+  // "favicon.ico" 404s; this is the brand mark the landing page actually serves.
+  icon: "assets/brand/flow-mark.svg",
 };
 
 export type ExecutionNetwork = "mainnet-beta";
@@ -54,7 +57,11 @@ function rethrowKnownFailures(error: unknown): never {
     );
   }
   // Android surfaces a dismissed wallet sheet as a java.util.concurrent.CancellationException.
-  if (/cancelled by user|association cancelled|cancellation(exception)?/i.test(message)) {
+  if (
+    /cancelled by user|association cancelled|cancellation(exception)?/i.test(
+      message,
+    )
+  ) {
     throw new WalletConnectionCancelledError(
       "Wallet connection was cancelled.",
     );

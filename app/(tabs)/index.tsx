@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -18,7 +19,6 @@ import {
   FileCheck2,
   Search,
   SlidersHorizontal,
-  TrendingUp,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -66,7 +66,7 @@ export default function MarketsScreen() {
             <View style={styles.topBar}>
               <View style={styles.brandLine}>
                 <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.brandMark}>
-                  <TrendingUp color="#FFFFFF" size={18} />
+                  <Image source={require('@/assets/images/brand-mark.png')} style={styles.brandMarkIcon} resizeMode="contain" />
                 </LinearGradient>
                 <Text style={styles.brandText}>Searix Trade</Text>
               </View>
@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
   topBar: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   brandLine: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
   brandMark: { alignItems: "center", borderRadius: radius.pill, height: 36, justifyContent: "center", width: 36 },
+  brandMarkIcon: { height: 20, width: 20 },
   brandText: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 16 },
   topActions: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
   portfolioPill: { alignItems: "center", borderColor: colors.borderStrong, borderRadius: radius.pill, borderWidth: 1, justifyContent: "center", minHeight: 36, paddingHorizontal: spacing.md },
