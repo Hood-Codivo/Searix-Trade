@@ -28,7 +28,10 @@ async function obtainPushToken(): Promise<string> {
     await Notifications.setNotificationChannelAsync('alerts', {
       name: 'Price & premium alerts',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
+      // null here means "play the system default sound". The string 'default' is NOT a recognized
+      // keyword for this field -- expo-notifications treats any string as a custom sound file name
+      // and fails looking for one literally called "default".
+      sound: null,
     });
   }
   const existing = await Notifications.getPermissionsAsync();

@@ -56,7 +56,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try { response = await fetch(`${apiUrl}${path}`, {
     ...init,
     signal: controller.signal,
-    headers: { Accept: "application/json", "Content-Type": "application/json", ...(apiSession ? { Authorization: `Bearer ${apiSession.token}` } : {}), ...init.headers },
+    // Only declare a JSON content type when there's actually a body. Sending it on a bodyless request
+    // (e.g. a DELETE with nothing to send) makes the server try to JSON-parse an empty string and fail
+    // with an unrelated-looking error -- declaring a content type for content that doesn't exist.
+    headers: { Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}), ...(apiSession ? { Authorization: `Bearer ${apiSession.token}` } : {}), ...init.headers },
   }); } finally {
     clearTimeout(timer);
     init.signal?.removeEventListener('abort', abort);

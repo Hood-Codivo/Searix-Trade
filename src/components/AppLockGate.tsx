@@ -33,25 +33,37 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, [challenge]);
 
-  if (locked === null) return <View style={styles.blank} />;
-  if (!locked) return <>{children}</>;
-
+  // `children` (the navigator, WalletProvider's session restore, everything) stays mounted the whole
+  // time -- only an opaque overlay toggles on top. Unmounting the navigator here instead would tear it
+  // down mid-flight whenever a wallet handoff re-triggers the lock, which is exactly what produced
+  // "state update on a component that hasn't mounted yet": Expo Router resolves the launch deep link
+  // asynchronously right after the navigator mounts, and that resolution was landing on a fiber that
+  // had since been unmounted and not yet remounted.
   return (
-    <View style={styles.safe}>
-      <Image source={require('../../assets/images/brand-mark.png')} style={styles.mark} resizeMode="contain" />
-      <Text style={styles.title}>Searix Trade is locked</Text>
-      <Text style={styles.copy}>Unlock with your fingerprint, face, or device passcode to continue.</Text>
-      <Pressable accessibilityRole="button" onPress={() => void challenge()} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-        <ShieldCheck color={colors.canvas} size={18} />
-        <Text style={styles.buttonText}>Unlock</Text>
-      </Pressable>
+    <View style={styles.root}>
+      {children}
+      {locked !== false ? (
+        <View style={styles.overlay}>
+          {locked === null ? null : (
+            <>
+              <Image source={require('../../assets/images/brand-mark.png')} style={styles.mark} resizeMode="contain" />
+              <Text style={styles.title}>Searix Trade is locked</Text>
+              <Text style={styles.copy}>Unlock with your fingerprint, face, or device passcode to continue.</Text>
+              <Pressable accessibilityRole="button" onPress={() => void challenge()} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+                <ShieldCheck color={colors.canvas} size={18} />
+                <Text style={styles.buttonText}>Unlock</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  blank: { backgroundColor: colors.canvas, flex: 1 },
-  safe: { alignItems: 'center', backgroundColor: '#15161F', flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.xl },
+  root: { flex: 1 },
+  overlay: { alignItems: 'center', backgroundColor: '#15161F', bottom: 0, gap: spacing.md, justifyContent: 'center', left: 0, padding: spacing.xl, position: 'absolute', right: 0, top: 0 },
   mark: { height: 72, marginBottom: spacing.lg, width: 72 },
   title: { color: '#FFFFFF', fontFamily: font.sansSemiBold, fontSize: 22 },
   copy: { color: '#C6C4D9', fontFamily: font.sans, fontSize: 14, maxWidth: 280, textAlign: 'center' },

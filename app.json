@@ -38,6 +38,7 @@
     },
     "android": {
       "package": "app.searixtrade.mobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#5B4FE8"
