@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1043391894783",
+    "project_id": "searix-trade",
+    "storage_bucket": "searix-trade.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043391894783:android:a49148ac2a8451f95028ca",
+        "android_client_info": {
+          "package_name": "app.searixtrade.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4Mn4ReQMfcVzX_IQRLTCG194S3r2JRBM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
