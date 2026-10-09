@@ -7,6 +7,7 @@ import { useWallet } from '@/context/WalletProvider';
 import { usePlatformInfo, useReceipts } from '@/hooks/useMarkets';
 import { WalletPortfolio } from '@/components/WalletPortfolio';
 import { NotificationsToggle } from '@/components/NotificationsToggle';
+import { AppLockToggle } from '@/components/AppLockToggle';
 import { ReceiptCard } from '@/components/ReceiptCard';
 import { router, type Href } from 'expo-router';
 import { colors, font, radius, spacing } from '@/theme';
@@ -30,6 +31,7 @@ export default function Profile() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>WALLET</Text>
         <Text style={styles.title}>Your wallet</Text>
+        <AppLockToggle />
 
         {status === 'connected' && account ? (
           <View style={styles.card}>

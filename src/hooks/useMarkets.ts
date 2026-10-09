@@ -249,7 +249,19 @@ export function useExecuteOrder(market: Market) {
     setError(null);
   }, [pendingKey]);
 
-  return { state, receipt, error, network, account, execute, reset };
+  // Drops a stuck pending trade that retrying can never resolve -- a confirm that will always be
+  // rejected server-side (for example, an execution ticket issued before a verification-rule change).
+  // This only clears Searix's own local record of it; it never touches, and cannot undo, anything
+  // already on-chain. The caller's UI must tell the person to check Solana Explorer first.
+  const discardPending = useCallback(async () => {
+    pendingExecutions.delete(pendingKey);
+    await SecureStore.deleteItemAsync(pendingStorageKey).catch(() => undefined);
+    setError(null);
+    setReceipt(null);
+    setState('idle');
+  }, [pendingKey, pendingStorageKey]);
+
+  return { state, receipt, error, network, account, execute, reset, discardPending };
 }
 
 export function usePlatformInfo() {

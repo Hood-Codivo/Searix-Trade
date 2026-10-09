@@ -10,6 +10,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { View } from 'react-native';
 import { WalletProvider } from '@/context/WalletProvider';
+import { AppLockGate } from '@/components/AppLockGate';
 import { colors } from '@/theme';
 // Side effect only: registers the foreground notification handler (banner + sound) before any screen mounts.
 import '@/services/push';
@@ -26,9 +27,11 @@ export default function RootLayout() {
   if (!sansLoaded) return <View style={{ backgroundColor: colors.canvas, flex: 1 }} />;
 
   return (
-    <WalletProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ contentStyle: { backgroundColor: colors.canvas }, headerShown: false }} />
-    </WalletProvider>
+    <AppLockGate>
+      <WalletProvider>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ contentStyle: { backgroundColor: colors.canvas }, headerShown: false }} />
+      </WalletProvider>
+    </AppLockGate>
   );
 }

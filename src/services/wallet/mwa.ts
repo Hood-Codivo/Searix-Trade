@@ -11,6 +11,21 @@ import type {
 } from "@solana-mobile/mobile-wallet-adapter-protocol";
 
 import { validateTradeTransaction, type TradeIntent } from './transaction-guard';
+import { beginWalletInteraction, endWalletInteraction } from '../walletInteraction';
+
+// Every call into the wallet app goes through this instead of `transact` directly, so AppLockGate can
+// tell a wallet handoff apart from the user switching to another app -- see walletInteraction.ts.
+async function guardedTransact<T>(
+  callback: (wallet: Web3MobileWallet) => T | Promise<T>,
+  config?: Parameters<typeof transact>[1],
+): Promise<T> {
+  beginWalletInteraction();
+  try {
+    return await transact(callback, config);
+  } finally {
+    endWalletInteraction();
+  }
+}
 
 const APP_IDENTITY = {
   name: "Searix Trade",
@@ -76,7 +91,7 @@ export async function connectWallet(): Promise<{
   account: WalletAccount;
 }> {
   try {
-    const result = await transact(async (wallet: Web3MobileWallet) =>
+    const result = await guardedTransact(async (wallet: Web3MobileWallet) =>
       wallet.authorize({
         identity: APP_IDENTITY,
         chain: chainFor(getSolanaNetwork()),
@@ -92,7 +107,7 @@ export async function reauthorizeWallet(
   authToken: AuthToken,
 ): Promise<{ authToken: AuthToken; account: WalletAccount }> {
   try {
-    const result = await transact(async (wallet: Web3MobileWallet) =>
+    const result = await guardedTransact(async (wallet: Web3MobileWallet) =>
       wallet.authorize({
         identity: APP_IDENTITY,
         chain: chainFor(getSolanaNetwork()),
@@ -107,7 +122,7 @@ export async function reauthorizeWallet(
 
 export async function disconnectWallet(authToken: AuthToken): Promise<void> {
   try {
-    await transact(async (wallet: Web3MobileWallet) => {
+    await guardedTransact(async (wallet: Web3MobileWallet) => {
       await wallet.deauthorize({ auth_token: authToken });
     });
   } catch (error) {
@@ -128,7 +143,7 @@ export async function signAndSendTransaction(
       Buffer.from(transactionBase64, "base64"),
     );
     await validateTradeTransaction(transaction, expected);
-    const signatures = await transact(async (wallet: Web3MobileWallet) => {
+    const signatures = await guardedTransact(async (wallet: Web3MobileWallet) => {
       const authorized = await wallet.authorize({
         identity: APP_IDENTITY,
         chain: chainFor(getSolanaNetwork()),
@@ -147,15 +162,21 @@ export async function signAndSendTransaction(
 }
 
 export async function signWalletMessage(message: string, authToken: AuthToken, walletAddress: string): Promise<string> {
-  return transact(async (wallet: Web3MobileWallet) => {
+  return guardedTransact(async (wallet: Web3MobileWallet) => {
     const authorized = await wallet.authorize({ identity: APP_IDENTITY, chain: chainFor(getSolanaNetwork()), auth_token: authToken });
     const address = new PublicKey(walletAddress).toBuffer().toString('base64');
     if (!authorized.accounts.some(account => account.address === address)) throw new Error('Wallet account changed. Reconnect it.');
     const payload = Buffer.from(message, 'utf8');
     const signed = (await wallet.signMessages({ addresses: [address], payloads: [payload] }))[0];
-    if (!signed || signed.length !== payload.length + 64 || !Buffer.from(signed.subarray(0, payload.length)).equals(payload)) {
-      throw new Error('Wallet returned an invalid signed message.');
+    // Mobile Wallet Adapter implementations disagree on the shape of a signed message: some return
+    // just the raw 64-byte ed25519 signature, others return the original message with the signature
+    // appended. Accept either rather than assuming one wallet's convention is universal.
+    if (signed && signed.length === 64) {
+      return Buffer.from(signed).toString('base64');
     }
-    return Buffer.from(signed.subarray(payload.length)).toString('base64');
+    if (signed && signed.length === payload.length + 64 && Buffer.from(signed.subarray(0, payload.length)).equals(payload)) {
+      return Buffer.from(signed.subarray(payload.length)).toString('base64');
+    }
+    throw new Error('Wallet returned an invalid signed message.');
   });
 }

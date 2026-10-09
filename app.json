@@ -21,6 +21,12 @@
           "icon": "./assets/images/icon.png",
           "color": "#6D5DF6"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Searix Trade uses Face ID to unlock the app."
+        }
       ]
     ],
     "experiments": {
