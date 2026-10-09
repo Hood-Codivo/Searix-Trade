@@ -56,6 +56,10 @@ export type WalletAccount = {
 
 export class WalletNotFoundError extends Error {}
 export class WalletConnectionCancelledError extends Error {}
+// The wallet may have already signed and broadcast the transaction before the connection back to
+// Searix dropped -- unlike a cancelled connect (where nothing happened), this means the outcome is
+// genuinely unknown. Callers must not treat it as a safe-to-retry no-op.
+export class AmbiguousSubmissionError extends Error {}
 
 function toWalletAccount(result: AuthorizationResult): WalletAccount {
   const account = result.accounts[0];
@@ -138,6 +142,10 @@ export async function signAndSendTransaction(
   authToken: AuthToken,
   expected: TradeIntent,
 ): Promise<string> {
+  // Once this flips true, the wallet has been asked to sign and broadcast -- it may have already done
+  // so even if the call below never returns a result (the local connection back to Searix can drop
+  // after the wallet's own work succeeds). A failure past this point is never a safe no-op to retry.
+  let submissionRequested = false;
   try {
     const transaction = VersionedTransaction.deserialize(
       Buffer.from(transactionBase64, "base64"),
@@ -150,13 +158,28 @@ export async function signAndSendTransaction(
         auth_token: authToken,
       });
       if (toWalletAccount(authorized).address !== expected.walletAddress) throw new Error('Wallet account changed. Review the trade again.');
+      submissionRequested = true;
       return wallet.signAndSendTransactions({ transactions: [transaction] });
     });
     const signature = signatures[0];
-    if (!signature)
-      throw new Error("The wallet did not return a transaction signature.");
+    if (!signature) {
+      throw new AmbiguousSubmissionError(
+        "Your wallet didn't return a signature for this trade. It may or may not have gone through -- " +
+        "check your wallet's recent activity or Solana Explorer for a SOL/USDC trade just now before trying again. Do not sign a second time until you've checked.",
+      );
+    }
     return signature;
   } catch (error) {
+    if (error instanceof AmbiguousSubmissionError) throw error;
+    if (submissionRequested) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/cancelled by user|association cancelled|cancellation(exception)?|timed? ?out/i.test(message)) {
+        throw new AmbiguousSubmissionError(
+          "The connection to your wallet dropped right as it may have been signing this trade. It may or may not have gone through -- " +
+          "check your wallet's recent activity or Solana Explorer for a SOL/USDC trade just now before trying again. Do not sign a second time until you've checked.",
+        );
+      }
+    }
     rethrowKnownFailures(error);
   }
 }
