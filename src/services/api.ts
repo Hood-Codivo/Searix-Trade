@@ -20,14 +20,49 @@ import type {
 const apiUrl =
   process.env.EXPO_PUBLIC_API_URL ?? "https://clob-backend.onrender.com";
 
+if (!__DEV__ && !apiUrl.startsWith('https://')) throw new Error('Production API URL must use HTTPS.');
+
+export type ApiSession = { token: string; walletAddress: string; expiresAt: number };
+let apiSession: ApiSession | null = null;
+export function setApiSession(session: ApiSession | null) { apiSession = session; }
+export function hasApiSession() { return Boolean(apiSession && apiSession.expiresAt > Date.now()); }
+export async function authenticateApiWallet(walletAddress: string, sign: (message: string) => Promise<string>) {
+  const challenge = await request<{ nonce: string; message: string }>('/v1/auth/challenge', { method: 'POST', body: JSON.stringify({ walletAddress }) });
+  // Only sign our narrowly defined login messages, never arbitrary API-supplied bytes.
+  const expectedPrefix = `Searix Trade wallet sign-in\nWallet: ${walletAddress}\nNonce: ${challenge.nonce}\nExpires: `;
+  if (!/^[a-f0-9]{64}$/.test(challenge.nonce) || !challenge.message.startsWith(expectedPrefix) ||
+      !challenge.message.endsWith('\nThis message authenticates your account. It does not authorize a transaction.') || challenge.message.length > 600) {
+    throw new Error('The server returned an invalid wallet sign-in challenge.');
+  }
+  const signature = await sign(challenge.message);
+  const session = await request<ApiSession>('/v1/auth/session', { method: 'POST', body: JSON.stringify({ nonce: challenge.nonce, signature }) });
+  if (session.walletAddress !== walletAddress) throw new Error('Wallet session mismatch.');
+  setApiSession(session); return session;
+}
+export async function revokeApiSession() {
+  try { if (apiSession) await request('/v1/auth/session', { method: 'DELETE' }); }
+  finally { setApiSession(null); }
+}
+
 type ApiResponse<T> = { data: T };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (init.signal?.aborted) controller.abort();
+  else init.signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(abort, 20_000);
+  let response: Response;
+  try { response = await fetch(`${apiUrl}${path}`, {
     ...init,
-    headers: { Accept: "application/json", "Content-Type": "application/json", ...init.headers },
-  });
+    signal: controller.signal,
+    headers: { Accept: "application/json", "Content-Type": "application/json", ...(apiSession ? { Authorization: `Bearer ${apiSession.token}` } : {}), ...init.headers },
+  }); } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener('abort', abort);
+  }
   if (!response.ok) {
+    if (response.status === 401) { setApiSession(null); throw new Error("Wallet sign-in expired. Disconnect and reconnect your wallet."); }
     const body = await response
       .json()
       .then((json) => json as { error?: { code?: string; message?: string } })
@@ -62,7 +97,7 @@ export const marketApi = {
       body: JSON.stringify({ side, amountUsd }),
     }),
   listReceipts: (signal?: AbortSignal) =>
-    request<ExecutionReceipt[]>("/v1/execution-receipts", { signal }),
+    hasApiSession() ? request<ExecutionReceipt[]>("/v1/execution-receipts", { signal }) : Promise.resolve([] as ExecutionReceipt[]),
   walletExecutions: (address: string, signal?: AbortSignal) =>
     request<ExecutionReceipt[]>(`/v1/wallets/${encodeURIComponent(address)}/executions`, { signal }),
   walletBalances: (address: string, signal?: AbortSignal) =>
@@ -78,7 +113,7 @@ export const marketApi = {
     }),
   confirmExecution: (
     id: string,
-    params: { signature: string; network: ExecutionNetwork; side: TradeSide; amountUsd: number; userPublicKey: string },
+    params: { executionIntent: string; signature: string; network: ExecutionNetwork; side: TradeSide; amountUsd: number; userPublicKey: string },
   ) =>
     request<ExecutionReceipt>(`/v1/markets/${encodeURIComponent(id)}/execution-confirm`, {
       method: "POST",
@@ -97,6 +132,12 @@ export const marketApi = {
     request<AlertRule>("/v1/alert-rules", { method: "POST", body: JSON.stringify(rule) }),
   deleteAlertRule: (id: string, wallet: string) =>
     request<{ removed: true }>(`/v1/alert-rules/${encodeURIComponent(id)}?wallet=${encodeURIComponent(wallet)}`, { method: "DELETE" }),
+  registerPushToken: (wallet: string, token: string) =>
+    request<{ registered: boolean }>(`/v1/wallets/${encodeURIComponent(wallet)}/push-token`, { method: 'POST', body: JSON.stringify({ token }) }),
+  unregisterPushToken: (wallet: string) =>
+    request<{ registered: boolean }>(`/v1/wallets/${encodeURIComponent(wallet)}/push-token`, { method: 'DELETE' }),
+  pushTokenStatus: (wallet: string, signal?: AbortSignal) =>
+    request<{ registered: boolean }>(`/v1/wallets/${encodeURIComponent(wallet)}/push-token`, { signal }),
   registryEntry: (symbol: string, signal?: AbortSignal) =>
     request<AssetRegistryEntry>(`/v1/registry/${encodeURIComponent(symbol)}`, { signal }),
 };

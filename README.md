@@ -48,3 +48,23 @@ npx expo run:android    # real device/emulator, required for wallet signing (MWA
 
 Copy `.env` and point `EXPO_PUBLIC_API_URL` at a running backend (defaults to the deployed Render
 instance). `EXPO_PUBLIC_SOLANA_NETWORK` defaults to `devnet`, matching the backend's default.
+
+## Security update
+
+Wallet connection now includes a sign-in message (not a transaction). Private API calls use an expiring session stored in SecureStore. Old or expired sessions require reconnecting. Install the matching hardened backend before using this app build.
+
+`EXPO_PUBLIC_API_URL` must use HTTPS in production. `EXPO_PUBLIC_SOLANA_RPC_URL` optionally sets the independently trusted mainnet RPC used for pre-sign simulation; it defaults to Solana's public mainnet endpoint. This URL is bundled into the app: never include a privileged RPC credential. Public RPC rate limits can block signing; use an app-safe RPC endpoint with appropriate quotas.
+
+Before signing, the app verifies the signer, permitted instruction families, token spending, minimum output and token authorities. It simulates through the independent RPC. These checks depend on the trusted RPC and swap programs and are not an audit of those programs.
+
+After submission, pending receipt confirmations are persisted in SecureStore. The retry action confirms the same signature instead of signing another swap. A failed/expired pending transaction needs reconciliation against chain history before clearing its journal; this intentionally blocks automatic resubmission.
+
+Validation (Node 22.18+):
+
+```bash
+npm run typecheck
+npm run test:security
+npx expo export --platform android --output-dir /tmp/searix-export --max-workers 2 --no-bytecode
+```
+
+A real Android wallet smoke test is still required before release; an export is not a device test. See the backend `SECURITY.md` for the full audit and remaining dependency issues.

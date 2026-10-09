@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import type { AuthToken } from '@solana-mobile/mobile-wallet-adapter-protocol';
 import {
   connectWallet,
+  signWalletMessage,
   disconnectWallet,
   getSolanaNetwork,
   reauthorizeWallet,
@@ -13,9 +14,12 @@ import {
   type WalletAccount,
 } from '@/services/wallet/mwa';
 
+import { authenticateApiWallet, revokeApiSession, setApiSession, type ApiSession } from '@/services/api';
+import type { TradeIntent } from '@/services/wallet/transaction-guard';
+
 const STORAGE_KEY = 'searix-trade.wallet-session';
 
-type StoredSession = { authToken: AuthToken; account: WalletAccount };
+type StoredSession = { authToken: AuthToken; account: WalletAccount; apiSession: ApiSession };
 
 export type WalletStatus = 'restoring' | 'disconnected' | 'connecting' | 'connected';
 
@@ -26,7 +30,7 @@ type WalletContextValue = {
   network: ExecutionNetwork;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  signAndSendTransaction: (transactionBase64: string) => Promise<string>;
+  signAndSendTransaction: (transactionBase64: string, expected: TradeIntent) => Promise<string>;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -52,9 +56,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         const stored = JSON.parse(raw) as StoredSession;
         const result = await reauthorizeWallet(stored.authToken);
+        if (!stored.apiSession || stored.apiSession.expiresAt <= Date.now() || stored.apiSession.walletAddress !== result.account.address) throw new Error('Please reconnect your wallet.');
+        setApiSession(stored.apiSession);
         setAuthToken(result.authToken);
         setAccount(result.account);
-        await persistSession(result);
+        await persistSession({ ...result, apiSession: stored.apiSession });
         setStatus('connected');
       } catch {
         await persistSession(null);
@@ -68,11 +74,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const result = await connectWallet();
+      const apiSession = await authenticateApiWallet(result.account.address, message => signWalletMessage(message, result.authToken, result.account.address));
       setAuthToken(result.authToken);
       setAccount(result.account);
-      await persistSession(result);
+      await persistSession({ ...result, apiSession });
       setStatus('connected');
     } catch (err) {
+      setApiSession(null); setAccount(null); setAuthToken(null);
+      await persistSession(null);
       setStatus('disconnected');
       if (err instanceof WalletNotFoundError) {
         setError('No Solana wallet app found. Install Phantom, Solflare, or Jupiter Mobile and try again.');
@@ -85,6 +94,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(async () => {
+    await revokeApiSession().catch(() => undefined);
     if (authToken) {
       await disconnectWallet(authToken).catch(() => undefined);
     }
@@ -96,9 +106,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [authToken]);
 
   const signAndSendTransaction = useCallback(
-    async (transactionBase64: string) => {
+    async (transactionBase64: string, expected: TradeIntent) => {
       if (!authToken) throw new Error('Connect your wallet first.');
-      return signAndSendTransactionMwa(transactionBase64, authToken);
+      return signAndSendTransactionMwa(transactionBase64, authToken, expected);
     },
     [authToken]
   );

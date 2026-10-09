@@ -18,13 +18,14 @@ function explorerUrl(signature: string, _network: ExecutionNetwork): string {
 
 const signLabels: Record<string, string> = {
   building: 'Building transaction…',
+  'pending-confirmation': 'Retry confirmation (no new trade)',
   'awaiting-signature': 'Waiting for wallet…',
   confirming: 'Confirming on-chain…',
 };
 
 export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; initialSide?: TradeSide }) {
   const { account, network, connect } = useWallet();
-  const execOrder = useExecuteOrder(market.id);
+  const execOrder = useExecuteOrder(market);
   const [side, setSide] = useState<TradeSide>(initialSide);
   const [amount, setAmount] = useState('1000');
   const [quote, setQuote] = useState<ExecutionQuote | null>(null);
@@ -60,6 +61,7 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
 
   const saveReceipt = async () => {
     if (!quote) return;
+    if (!account) { await connect(); return; }
     setSaving(true);
     setError(null);
     try {
@@ -180,7 +182,7 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
           {quote.topOfBook ? <Text style={styles.depthLine}>Top of book: {quote.topOfBook.size.toLocaleString('en-US', { maximumFractionDigits: 4 })} {market.base} at ${formatPrice(quote.topOfBook.price)}</Text> : null}
           {quote.warning ? <View style={styles.warning}><ShieldAlert color={colors.amber} size={17} /><Text style={styles.warningText}>{quote.warning}</Text></View> : null}
           <View style={styles.aiCard}><View style={styles.aiHeading}><FileText color={colors.amber} size={17} /><Text style={styles.aiTitle}>Searix explanation</Text></View><Text style={styles.aiCopy}>{quote.explanation}</Text><Text style={styles.aiEvidence}>Based on sequence {market.sequence ?? '—'} · {new Date(quote.observedAt).toLocaleTimeString()}</Text></View>
-          <Pressable accessibilityRole="button" accessibilityState={{ busy: saving, disabled: saving || Boolean(savedReceiptId) }} disabled={saving || Boolean(savedReceiptId)} onPress={() => void saveReceipt()} style={({ pressed }) => [styles.receiptButton, pressed && styles.pressed, (saving || savedReceiptId) && styles.receiptButtonSaved]}>{savedReceiptId ? <Check color={colors.green} size={17} /> : <FileCheck2 color={colors.text} size={17} />}<Text style={[styles.receiptButtonText, savedReceiptId && styles.receiptButtonTextSaved]}>{saving ? 'Saving analysis…' : savedReceiptId ? 'Analysis receipt saved' : 'Save analysis receipt'}</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityState={{ busy: saving, disabled: saving || Boolean(savedReceiptId) }} disabled={saving || Boolean(savedReceiptId)} onPress={() => void saveReceipt()} style={({ pressed }) => [styles.receiptButton, pressed && styles.pressed, (saving || savedReceiptId) && styles.receiptButtonSaved]}>{savedReceiptId ? <Check color={colors.green} size={17} /> : <FileCheck2 color={colors.text} size={17} />}<Text style={[styles.receiptButtonText, savedReceiptId && styles.receiptButtonTextSaved]}>{saving ? 'Saving analysis…' : savedReceiptId ? 'Analysis receipt saved' : account ? 'Save analysis receipt' : 'Connect wallet to save'}</Text></Pressable>
           {savedReceiptId ? <><Text style={styles.receiptId}>Unverified receipt · {savedReceiptId}</Text><Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/profile')} style={({ pressed }) => [styles.viewReceiptsButton, pressed && styles.pressed]}><Text style={styles.viewReceiptsText}>View receipts in profile</Text></Pressable></> : null}
           {!previewing ? (
             <Pressable accessibilityRole="button" onPress={() => setPreviewing(true)} style={({ pressed }) => [styles.previewButton, pressed && styles.pressed]}><Text style={styles.previewButtonText}>Preview {side} order</Text></Pressable>
@@ -210,7 +212,7 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
               ) : (
                 <>
                   <Text style={styles.orderNotice}>
-                    This builds a real swap on Solana mainnet through the best route shown above. Signing it moves real funds.
+                    This builds a real swap on Solana mainnet. Signing moves real funds. Before signing, Searix checks for at least 97.8% of the analyzed output and caps SOL network and account-creation costs at 0.02 SOL.
                   </Text>
                   {execOrder.error ? <View style={styles.inlineError}><ShieldAlert color={colors.red} size={17} /><Text style={styles.inlineErrorText}>{execOrder.error}</Text></View> : null}
                   {!account ? (
@@ -222,7 +224,7 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
                       accessibilityRole="button"
                       accessibilityState={{ busy: execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming' }}
                       disabled={execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming'}
-                      onPress={() => void execOrder.execute(side, quote.requestedUsd)}
+                      onPress={() => void execOrder.execute(side, quote.requestedUsd, quote)}
                       style={({ pressed }) => [styles.walletButton, styles.walletButtonActive, pressed && styles.pressed]}
                     >
                       {execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming'

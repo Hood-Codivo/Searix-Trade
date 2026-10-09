@@ -11,6 +11,8 @@ import {
 import { View } from 'react-native';
 import { WalletProvider } from '@/context/WalletProvider';
 import { colors } from '@/theme';
+// Side effect only: registers the foreground notification handler (banner + sound) before any screen mounts.
+import '@/services/push';
 
 export default function RootLayout() {
   const [sansLoaded] = useSansFonts({

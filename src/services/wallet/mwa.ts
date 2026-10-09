@@ -10,6 +10,8 @@ import type {
   Cluster,
 } from "@solana-mobile/mobile-wallet-adapter-protocol";
 
+import { validateTradeTransaction, type TradeIntent } from './transaction-guard';
+
 const APP_IDENTITY = {
   name: "Searix Trade",
   uri: "https://searixtrade.com",
@@ -119,17 +121,20 @@ export async function disconnectWallet(authToken: AuthToken): Promise<void> {
 export async function signAndSendTransaction(
   transactionBase64: string,
   authToken: AuthToken,
+  expected: TradeIntent,
 ): Promise<string> {
   try {
     const transaction = VersionedTransaction.deserialize(
       Buffer.from(transactionBase64, "base64"),
     );
+    await validateTradeTransaction(transaction, expected);
     const signatures = await transact(async (wallet: Web3MobileWallet) => {
-      await wallet.authorize({
+      const authorized = await wallet.authorize({
         identity: APP_IDENTITY,
         chain: chainFor(getSolanaNetwork()),
         auth_token: authToken,
       });
+      if (toWalletAccount(authorized).address !== expected.walletAddress) throw new Error('Wallet account changed. Review the trade again.');
       return wallet.signAndSendTransactions({ transactions: [transaction] });
     });
     const signature = signatures[0];
@@ -139,4 +144,18 @@ export async function signAndSendTransaction(
   } catch (error) {
     rethrowKnownFailures(error);
   }
+}
+
+export async function signWalletMessage(message: string, authToken: AuthToken, walletAddress: string): Promise<string> {
+  return transact(async (wallet: Web3MobileWallet) => {
+    const authorized = await wallet.authorize({ identity: APP_IDENTITY, chain: chainFor(getSolanaNetwork()), auth_token: authToken });
+    const address = new PublicKey(walletAddress).toBuffer().toString('base64');
+    if (!authorized.accounts.some(account => account.address === address)) throw new Error('Wallet account changed. Reconnect it.');
+    const payload = Buffer.from(message, 'utf8');
+    const signed = (await wallet.signMessages({ addresses: [address], payloads: [payload] }))[0];
+    if (!signed || signed.length !== payload.length + 64 || !Buffer.from(signed.subarray(0, payload.length)).equals(payload)) {
+      throw new Error('Wallet returned an invalid signed message.');
+    }
+    return Buffer.from(signed.subarray(payload.length)).toString('base64');
+  });
 }

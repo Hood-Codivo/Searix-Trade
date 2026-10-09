@@ -6,6 +6,7 @@ import { Check, Copy, ExternalLink, LogOut, Receipt, ShieldCheck, WalletCards } 
 import { useWallet } from '@/context/WalletProvider';
 import { usePlatformInfo, useReceipts } from '@/hooks/useMarkets';
 import { WalletPortfolio } from '@/components/WalletPortfolio';
+import { NotificationsToggle } from '@/components/NotificationsToggle';
 import { ReceiptCard } from '@/components/ReceiptCard';
 import { router, type Href } from 'expo-router';
 import { colors, font, radius, spacing } from '@/theme';
@@ -89,6 +90,7 @@ export default function Profile() {
         )}
 
         {status === 'connected' && account ? <WalletPortfolio address={account.address} /> : null}
+        {status === 'connected' && account ? <NotificationsToggle address={account.address} /> : null}
 
         <Text style={[styles.eyebrow, styles.platformEyebrow]}>PLATFORM</Text>
         <Text style={styles.platformTitle}>Fees & transparency</Text>

@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { useWallet } from '@/context/WalletProvider';
 import { marketApi } from '@/services/api';
+import { acquireSubmission } from '@/services/wallet/submission-lock';
 import { subscribeToMarketUpdates, subscribeToStreamStatus, type StreamStatus } from '@/services/marketStream';
 import type { Alert, AssetRegistryEntry, CandleRange, ExecutionReceipt, FeesConfig, Market, RevenueSummary, TradeSide } from '@/types/market';
 
@@ -93,9 +95,9 @@ export function useCandles(id: string | undefined, range: CandleRange) {
 }
 
 export function useReceipts() {
+  const { account } = useWallet();
   const [resource, setResource] = useState<Resource<ExecutionReceipt[]>>({ data: [], error: null, loading: true });
-  // `load` keeps a stable identity (empty deps) so screens can safely re-run it on focus
-  // (e.g. via useFocusEffect) without re-subscribing on every render.
+  // Refresh on wallet changes as well as screen focus.
   const load = useCallback(async () => {
     setResource((current) => ({ ...current, error: null, loading: current.data.length === 0 }));
     try {
@@ -104,13 +106,13 @@ export function useReceipts() {
     } catch (error) {
       setResource((current) => ({ ...current, error: error instanceof Error ? error.message : 'Couldn’t load your receipts.', loading: false }));
     }
-  }, []);
+  }, [account?.address]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  return { ...resource, retry: load };
+  return { ...resource, data: resource.data.filter(receipt => Boolean(account) && receipt.walletAddress === account?.address), retry: load };
 }
 
 export function useAlerts(wallet?: string) {
@@ -149,56 +151,103 @@ export function useRegistryEntry(symbol: string | undefined) {
   return resource;
 }
 
-export type ExecuteOrderState = 'idle' | 'building' | 'awaiting-signature' | 'confirming' | 'executed' | 'error';
+export type ExecuteOrderState = 'idle' | 'building' | 'awaiting-signature' | 'confirming' | 'executed' | 'pending-confirmation' | 'error';
+
+type PendingExecution = { marketId: string; params: Parameters<typeof marketApi.confirmExecution>[1] };
+// Keep confirmed-submission retries separate from signing, including screen remounts.
+const pendingExecutions = new Map<string, PendingExecution>();
 
 // Orchestrates the real execute flow: build an unsigned transaction on the backend, sign + submit
 // it via the user's own wallet (never the backend), then ask the backend to verify it on-chain
 // before treating it as a real receipt.
-export function useExecuteOrder(marketId: string) {
+export function useExecuteOrder(market: Market) {
+  const marketId = market.id;
   const { account, network, signAndSendTransaction } = useWallet();
-  const [state, setState] = useState<ExecuteOrderState>('idle');
+  const busy = useRef(false);
+  const pendingKey = `${account?.address ?? ''}:${marketId}`;
+  const pendingStorageKey = `searix.pending.${pendingKey.replace(/[^a-zA-Z0-9._-]/g, char => `_${char.charCodeAt(0)}_`)}`;
+  const [state, setState] = useState<ExecuteOrderState>(pendingExecutions.has(pendingKey) ? 'pending-confirmation' : 'idle');
   const [receipt, setReceipt] = useState<ExecutionReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const confirmPending = useCallback(async () => {
+    const pending = pendingExecutions.get(pendingKey);
+    if (!pending) return null;
+    setState('confirming');
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const saved = await marketApi.confirmExecution(pending.marketId, pending.params);
+        await SecureStore.deleteItemAsync(pendingStorageKey);
+        pendingExecutions.delete(pendingKey);
+        setReceipt(saved); setError(null); setState('executed'); return saved;
+      } catch (err) {
+        lastError = err;
+        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)));
+      }
+    }
+    setState('pending-confirmation');
+    setError(`Transaction submitted (${pending.params.signature}). Do not trade again. Retry confirmation or check Solana Explorer. ${lastError instanceof Error ? lastError.message : ''}`);
+    return null;
+  }, [pendingKey, pendingStorageKey]);
+
   const execute = useCallback(
-    async (side: TradeSide, amountUsd: number) => {
+    async (side: TradeSide, amountUsd: number, quote: import("@/types/market").ExecutionQuote) => {
       if (!account) {
         setError('Connect your wallet first.');
         setState('error');
         return null;
       }
+      if (busy.current) return null;
+      const releaseSubmission = acquireSubmission(pendingKey);
+      if (!releaseSubmission) {
+        setError('This trade is already being processed in another screen.');
+        return null;
+      }
+      busy.current = true;
       setError(null);
       setReceipt(null);
       try {
+        if (!pendingExecutions.has(pendingKey)) {
+          const pending = await SecureStore.getItemAsync(pendingStorageKey);
+          if (pending) pendingExecutions.set(pendingKey, JSON.parse(pending) as PendingExecution);
+        }
+        if (pendingExecutions.has(pendingKey)) return await confirmPending();
         setState('building');
         const built = await marketApi.buildExecutionTransaction(marketId, side, amountUsd, account.address);
         setState('awaiting-signature');
-        const signature = await signAndSendTransaction(built.transactionBase64);
-        setState('confirming');
-        const saved = await marketApi.confirmExecution(marketId, {
-          signature,
-          network: built.network,
-          side,
-          amountUsd,
-          userPublicKey: account.address,
+        if (!built.executionIntent || built.network !== 'mainnet-beta') throw new Error('Backend needs the security update before trading.');
+        const venue = quote.venueQuotes.find(row => row.best);
+        if (!venue || !market.baseMint || !market.quoteMint || market.baseDecimals === undefined || market.quoteDecimals === undefined) throw new Error('Analyze this trade again before signing.');
+        const signature = await signAndSendTransaction(built.transactionBase64, {
+          walletAddress: account.address,
+          inputMint: side === 'buy' ? market.quoteMint : market.baseMint,
+          outputMint: side === 'buy' ? market.baseMint : market.quoteMint,
+          inputDecimals: side === 'buy' ? market.quoteDecimals : market.baseDecimals,
+          outputDecimals: side === 'buy' ? market.baseDecimals : market.quoteDecimals,
+          maxInput: side === 'buy' ? amountUsd : venue.expectedBase,
+          minOutput: (side === 'buy' ? venue.expectedBase : venue.expectedQuote) * 0.978,
         });
-        setReceipt(saved);
-        setState('executed');
-        return saved;
+        pendingExecutions.set(pendingKey, { marketId, params: {
+          signature, executionIntent: built.executionIntent, network: built.network,
+          side, amountUsd, userPublicKey: account.address,
+        } });
+        await SecureStore.setItemAsync(pendingStorageKey, JSON.stringify(pendingExecutions.get(pendingKey)));
+        return await confirmPending();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not execute this order.');
-        setState('error');
+        setError(pendingExecutions.has(pendingKey) ? `Transaction already submitted. Retry confirmation; do not submit another trade. ${err instanceof Error ? err.message : ''}` : err instanceof Error ? err.message : 'Could not execute this order.');
+        setState(pendingExecutions.has(pendingKey) ? 'pending-confirmation' : 'error');
         return null;
-      }
+      } finally { busy.current = false; releaseSubmission(); }
     },
-    [marketId, account, signAndSendTransaction]
+    [market, marketId, account, signAndSendTransaction, pendingKey, pendingStorageKey, confirmPending]
   );
 
   const reset = useCallback(() => {
-    setState('idle');
+    setState(pendingExecutions.has(pendingKey) ? 'pending-confirmation' : 'idle');
     setReceipt(null);
     setError(null);
-  }, []);
+  }, [pendingKey]);
 
   return { state, receipt, error, network, account, execute, reset };
 }

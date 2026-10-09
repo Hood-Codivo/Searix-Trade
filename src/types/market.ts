@@ -139,6 +139,7 @@ export type ExecutionReceipt = {
 
 export type BuiltExecutionTransaction = {
   transactionBase64: string;
+  executionIntent: string;
   lastValidBlockHeight: number;
   network: ExecutionNetwork;
   kind: 'jupiter-swap' | 'phoenix-swap';
