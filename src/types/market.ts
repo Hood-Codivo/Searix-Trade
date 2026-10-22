@@ -231,3 +231,11 @@ export type AlertRule = {
   threshold: number;
   createdAt: string;
 };
+
+// A market a wallet chose to track.
+export type WatchlistEntry = {
+  id: string;
+  walletAddress: string;
+  marketId: string;
+  createdAt: string;
+};

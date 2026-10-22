@@ -11,8 +11,9 @@ import { ExecutionLab } from '@/components/ExecutionLab';
 import { MetricTile } from '@/components/MetricTile';
 import { PriceChart } from '@/components/PriceChart';
 import { QualityBadge } from '@/components/QualityBadge';
-import { useCandles, useMarket } from '@/hooks/useMarkets';
+import { useCandles, useMarket, useWatchlist } from '@/hooks/useMarkets';
 import { useTheme } from '@/context/ThemeProvider';
+import { useWallet } from '@/context/WalletProvider';
 import { font, radius, shadow, spacing } from '@/theme';
 import { formatCompactUsd, formatPercent, formatPrice } from '@/utils/format';
 import type { CandleRange } from '@/types/market';
@@ -28,6 +29,8 @@ const CANDLE_RANGE: CandleRange = '1m';
 export default function MarketDetail() {
   const { id, side: sideParam } = useLocalSearchParams<{ id: string; side?: string }>();
   const { data: market, error, loading, retry } = useMarket(id);
+  const { account, connect } = useWallet();
+  const { isSaved, toggle: toggleWatchlist } = useWatchlist();
   const [chartTab, setChartTab] = useState<ChartTab>('Price');
   const { data: candles } = useCandles(id, CANDLE_RANGE);
   const [chartWidth, setChartWidth] = useState(340);
@@ -44,7 +47,7 @@ export default function MarketDetail() {
       {/* Lifts the page while the amount keyboard is open, so the input being typed into stays visible. */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.nav}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><ArrowLeft color={colors.text} size={21} /></Pressable><View style={styles.navTitle}><Text style={styles.pair}>{market.base}/{market.quote}</Text><View style={styles.venueLine}><Radio color={colors.green} size={11} /><Text style={styles.venue}>{market.venue} · Mainnet</Text></View></View><Pressable accessibilityLabel="Add market to watchlist" style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><Star color={colors.text} size={20} /></Pressable></View>
+        <View style={styles.nav}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><ArrowLeft color={colors.text} size={21} /></Pressable><View style={styles.navTitle}><Text style={styles.pair}>{market.base}/{market.quote}</Text><View style={styles.venueLine}><Radio color={colors.green} size={11} /><Text style={styles.venue}>{market.venue} · Mainnet</Text></View></View><Pressable accessibilityLabel={isSaved(market.id) ? 'Remove market from watchlist' : 'Add market to watchlist'} onPress={() => (account ? toggleWatchlist(market.id) : connect())} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><Star color={isSaved(market.id) ? colors.amber : colors.text} fill={isSaved(market.id) ? colors.amber : 'none'} size={20} /></Pressable></View>
         <View style={styles.priceCard}>
           <View style={styles.priceLine}><View><Text style={styles.price}>{formatPrice(market.price)}</Text><Text style={[styles.change, { color: positive ? colors.green : colors.red }]}>{positive ? '▲' : '▼'} {formatPercent(market.change24h)} · 24h</Text></View><QualityBadge label={market.quality.label} tone={market.quality.tone} /></View>
           <View style={styles.marketMeta}><Text style={styles.marketMetaText}>{formatCompactUsd(market.volume24h)} volume</Text><View style={styles.metaDot} /><Text style={styles.marketMetaText}>{market.spreadBps.toFixed(1)} bps spread</Text></View>

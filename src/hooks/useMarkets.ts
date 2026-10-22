@@ -4,7 +4,7 @@ import { useWallet } from '@/context/WalletProvider';
 import { marketApi } from '@/services/api';
 import { acquireSubmission } from '@/services/wallet/submission-lock';
 import { subscribeToMarketUpdates, subscribeToStreamStatus, type StreamStatus } from '@/services/marketStream';
-import type { Alert, AssetRegistryEntry, CandleRange, ExecutionReceipt, FeesConfig, Market, RevenueSummary, TradeSide } from '@/types/market';
+import type { Alert, AssetRegistryEntry, CandleRange, ExecutionReceipt, FeesConfig, Market, RevenueSummary, TradeSide, WatchlistEntry } from '@/types/market';
 
 type Resource<T> = { data: T; error: string | null; loading: boolean };
 
@@ -134,6 +134,51 @@ export function useAlerts(wallet?: string) {
   }, [load]);
 
   return { ...resource, retry: load };
+}
+
+// Saved markets for the connected wallet, with optimistic add/remove so the star button feels
+// instant. Watchlist is private to a signed-in wallet -- no account means an empty, idle list
+// rather than a failed request.
+export function useWatchlist() {
+  const { account } = useWallet();
+  const [resource, setResource] = useState<Resource<WatchlistEntry[]>>({ data: [], error: null, loading: true });
+
+  const load = useCallback(async () => {
+    if (!account) { setResource({ data: [], error: null, loading: false }); return; }
+    setResource((current) => ({ ...current, error: null, loading: current.data.length === 0 }));
+    try {
+      const data = await marketApi.listWatchlist(account.address);
+      setResource({ data, error: null, loading: false });
+    } catch (error) {
+      setResource((current) => ({ ...current, error: error instanceof Error ? error.message : 'Couldn’t load your watchlist.', loading: false }));
+    }
+  }, [account?.address]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const isSaved = useCallback((marketId: string) => resource.data.some((entry) => entry.marketId === marketId), [resource.data]);
+
+  const toggle = useCallback(async (marketId: string) => {
+    if (!account) return;
+    const saved = isSaved(marketId);
+    setResource((current) => ({
+      ...current,
+      data: saved
+        ? current.data.filter((entry) => entry.marketId !== marketId)
+        : [...current.data, { id: `pending_${marketId}`, walletAddress: account.address, marketId, createdAt: new Date().toISOString() }],
+    }));
+    try {
+      if (saved) await marketApi.removeFromWatchlist(marketId, account.address);
+      else await marketApi.addToWatchlist(account.address, marketId);
+    } catch {
+      // The optimistic flip didn't actually happen server-side -- resync from the source of truth.
+      void load();
+    }
+  }, [account, isSaved, load]);
+
+  return { ...resource, isSaved, toggle, retry: load };
 }
 
 export function useRegistryEntry(symbol: string | undefined) {

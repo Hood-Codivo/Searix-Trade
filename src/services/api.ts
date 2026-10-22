@@ -15,6 +15,7 @@ import type {
   MarketCandles,
   RevenueSummary,
   TradeSide,
+  WatchlistEntry,
 } from "@/types/market";
 
 const apiUrl =
@@ -135,6 +136,12 @@ export const marketApi = {
     request<AlertRule>("/v1/alert-rules", { method: "POST", body: JSON.stringify(rule) }),
   deleteAlertRule: (id: string, wallet: string) =>
     request<{ removed: true }>(`/v1/alert-rules/${encodeURIComponent(id)}?wallet=${encodeURIComponent(wallet)}`, { method: "DELETE" }),
+  listWatchlist: (wallet: string, signal?: AbortSignal) =>
+    request<WatchlistEntry[]>(`/v1/watchlist?wallet=${encodeURIComponent(wallet)}`, { signal }),
+  addToWatchlist: (walletAddress: string, marketId: string) =>
+    request<WatchlistEntry>("/v1/watchlist", { method: "POST", body: JSON.stringify({ walletAddress, marketId }) }),
+  removeFromWatchlist: (marketId: string, wallet: string) =>
+    request<{ removed: true }>(`/v1/watchlist/${encodeURIComponent(marketId)}?wallet=${encodeURIComponent(wallet)}`, { method: "DELETE" }),
   registerPushToken: (wallet: string, token: string) =>
     request<{ registered: boolean }>(`/v1/wallets/${encodeURIComponent(wallet)}/push-token`, { method: 'POST', body: JSON.stringify({ token }) }),
   unregisterPushToken: (wallet: string) =>
