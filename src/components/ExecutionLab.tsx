@@ -8,9 +8,13 @@ import { useExecuteOrder } from '@/hooks/useMarkets';
 import { marketApi } from '@/services/api';
 import { colors, font, radius, shadow, spacing } from '@/theme';
 import type { ExecutionNetwork, ExecutionQuote, Market, TradeSide } from '@/types/market';
-import { formatCompactUsd, formatPrice } from '@/utils/format';
+import { KNOWN_MINTS } from '@/utils/tokenSymbols';
+import { toQuoteAmount } from '@/utils/orderAmount';
+import { formatPrice } from '@/utils/format';
 
-const presets = [250, 1_000, 5_000, 25_000];
+const buyPresets = [250, 1_000, 5_000, 25_000];
+const sellPresets = [0.1, 1, 10, 100];
+const tokenAmount = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 9 });
 
 function explorerUrl(signature: string, _network: ExecutionNetwork): string {
   return `https://explorer.solana.com/tx/${signature}`;
@@ -27,8 +31,9 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
   const { account, network, connect } = useWallet();
   const execOrder = useExecuteOrder(market);
   const [side, setSide] = useState<TradeSide>(initialSide);
-  const [amount, setAmount] = useState('1000');
+  const [amount, setAmount] = useState(initialSide === 'buy' ? '1000' : '1');
   const [quote, setQuote] = useState<ExecutionQuote | null>(null);
+  const [reviewed, setReviewed] = useState<{ input: number; quoteAmount: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -36,36 +41,65 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
   const [savedReceiptId, setSavedReceiptId] = useState<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   const parsedAmount = useMemo(() => Number(amount.replace(/,/g, '')), [amount]);
-  const validAmount = Number.isFinite(parsedAmount) && parsedAmount >= 1 && parsedAmount <= 1_000_000;
+  const baseSymbol = (market.baseMint && KNOWN_MINTS[market.baseMint]) || market.base;
+  const quoteSymbol = (market.quoteMint && KNOWN_MINTS[market.quoteMint]) || market.quote;
+  const inputToken = side === 'buy' ? quoteSymbol : baseSymbol;
+  const presets = side === 'buy' ? buyPresets : sellPresets;
+  const validAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const bestVenue = quote?.venueQuotes.find((venue) => venue.best && venue.isLive);
+
+  const invalidate = () => {
+    controller.current?.abort();
+    setLoading(false);
+    setQuote(null);
+    setReviewed(null);
+    setSavedReceiptId(null);
+    setPreviewing(false);
+    setError(null);
+    execOrder.reset();
+  };
 
   const analyze = async () => {
     if (!validAmount) {
-      setError('Enter an amount from $1 to $1,000,000.');
+      setError(`Enter a positive amount in ${inputToken}.`);
       return;
     }
     controller.current?.abort();
-    controller.current = new AbortController();
+    const request = new AbortController();
+    controller.current = request;
+    setQuote(null);
+    setReviewed(null);
     setLoading(true);
     setError(null);
     setSavedReceiptId(null);
     setPreviewing(false);
     execOrder.reset();
     try {
-      setQuote(await marketApi.quoteExecution(market.id, side, parsedAmount, controller.current.signal));
+      // The legacy API's amountUsd field is denominated in the market's quote token.
+      const current = side === 'sell' ? await marketApi.get(market.id, request.signal) : market;
+      const price = current.bids[0]?.price;
+      const quoteAmount = toQuoteAmount(side, parsedAmount, price, quoteSymbol);
+      const result = await marketApi.quoteExecution(market.id, side, quoteAmount, request.signal);
+      if (request.signal.aborted) return;
+      if (side === 'sell' && result.referencePrice !== Number(price!.toFixed(10))) {
+        throw new Error('The price changed. Analyze again to refresh your sell quantity.');
+      }
+      setReviewed({ input: parsedAmount, quoteAmount });
+      setQuote(result);
     } catch (reason) {
-      if ((reason as Error).name !== 'AbortError') setError(reason instanceof Error ? reason.message : 'Couldn’t analyze this order. Try again.');
+      if (!request.signal.aborted && (reason as Error).name !== 'AbortError') setError(reason instanceof Error ? reason.message : 'Couldn’t analyze this order. Try again.');
     } finally {
-      setLoading(false);
+      if (controller.current === request) setLoading(false);
     }
   };
 
   const saveReceipt = async () => {
-    if (!quote) return;
+    if (!quote || !reviewed) return;
     if (!account) { await connect(); return; }
     setSaving(true);
     setError(null);
     try {
-      const receipt = await marketApi.saveReceipt(market.id, side, quote.requestedUsd);
+      const receipt = await marketApi.saveReceipt(market.id, side, reviewed.quoteAmount);
       setSavedReceiptId(receipt.id);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Couldn’t save this analysis. Try again.');
@@ -75,12 +109,10 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
   };
 
   const chooseSide = (next: TradeSide) => {
+    if (next === side) return;
+    invalidate();
     setSide(next);
-    setQuote(null);
-    setSavedReceiptId(null);
-    setPreviewing(false);
-    setError(null);
-    execOrder.reset();
+    setAmount(next === 'buy' ? '1000' : '1');
   };
 
   return (
@@ -127,28 +159,30 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
       <View accessibilityRole="tablist" style={styles.sideSwitch}>
         {(['buy', 'sell'] as TradeSide[]).map((value) => (
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: side === value }} key={value} onPress={() => chooseSide(value)} style={({ pressed }) => [styles.sideButton, side === value && (value === 'buy' ? styles.buyActive : styles.sellActive), pressed && styles.pressed]}>
-            <Text style={[styles.sideText, side === value && styles.sideTextActive]}>{value === 'buy' ? 'Buy' : 'Sell'} {market.base}</Text>
+            <Text style={[styles.sideText, side === value && styles.sideTextActive]}>{value === 'buy' ? 'Buy' : 'Sell'} {baseSymbol}</Text>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.label}>Order value</Text>
+      <Text style={styles.label}>{side === 'buy' ? 'You pay' : 'You sell'}</Text>
       <View style={[styles.amountField, error && !validAmount && styles.amountFieldError]}>
-        <Text style={styles.currency}>$</Text>
         <TextInput
-          accessibilityLabel="Order value in US dollars"
+          accessibilityLabel={`${side === 'buy' ? 'You pay' : 'You sell'} in ${inputToken}`}
           keyboardType="decimal-pad"
-          onChangeText={(value) => { setAmount(value.replace(/[^0-9.,]/g, '')); setQuote(null); setSavedReceiptId(null); setPreviewing(false); setError(null); execOrder.reset(); }}
+          onChangeText={(value) => { invalidate(); setAmount(value.replace(/[^0-9.,]/g, '')); }}
           onSubmitEditing={() => void analyze()}
-          placeholder="1,000"
+          placeholder={side === 'buy' ? '1,000' : '1'}
           placeholderTextColor={colors.textSubtle}
           returnKeyType="done"
           style={styles.input}
           value={amount}
         />
-        <Text style={styles.currencyCode}>USD</Text>
+        <Text style={styles.currencyCode}>{inputToken}</Text>
       </View>
-      <View style={styles.presets}>{presets.map((value) => <Pressable accessibilityLabel={`Set order value to ${value} dollars`} key={value} onPress={() => { setAmount(String(value)); setQuote(null); setSavedReceiptId(null); setError(null); execOrder.reset(); }} style={({ pressed }) => [styles.preset, pressed && styles.pressed]}><Text style={styles.presetText}>{formatCompactUsd(value)}</Text></Pressable>)}</View>
+      <View style={styles.presets}>{presets.map((value) => <Pressable accessibilityLabel={`Set amount to ${value} ${inputToken}`} key={value} onPress={() => { invalidate(); setAmount(String(value)); }} style={({ pressed }) => [styles.preset, pressed && styles.pressed]}><Text style={styles.presetText}>{tokenAmount(value)} {inputToken}</Text></Pressable>)}</View>
+      <Text style={styles.orderNotice}>Estimated receive: {bestVenue ? `${tokenAmount(side === 'buy' ? bestVenue.expectedBase : bestVenue.expectedQuote)} ${side === 'buy' ? baseSymbol : quoteSymbol}` : 'Analyze to get a quote'}</Text>
+      <Text style={styles.orderNotice}>Network fees are paid separately in SOL.</Text>
+      {market.baseMint ? <Text selectable style={styles.orderNotice}>Token address: {market.baseMint}</Text> : null}
       {error ? <View accessibilityLiveRegion="polite" style={styles.inlineError}><ShieldAlert color={colors.red} size={17} /><Text style={styles.inlineErrorText}>{error}</Text></View> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ busy: loading, disabled: loading }} disabled={loading} onPress={() => void analyze()} style={({ pressed }) => [styles.analyzeButton, pressed && styles.pressed, loading && styles.disabled]}>
         {loading ? <ActivityIndicator color={colors.canvas} size="small" /> : <Calculator color={colors.canvas} size={18} />}
@@ -162,24 +196,24 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
             <View style={[styles.qualityPill, quote.qualityLabel === 'Expensive' && styles.qualityPillRisk]}><Check color={quote.qualityLabel === 'Expensive' ? colors.red : colors.green} size={15} /><Text style={[styles.qualityText, quote.qualityLabel === 'Expensive' && styles.qualityTextRisk]}>{quote.qualityLabel}</Text></View>
           </View>
           <View style={styles.metricGrid}>
-            <ResultMetric label="Average fill" value={formatPrice(quote.averagePrice)} />
+            <ResultMetric label="Average fill" value={`${formatPrice(quote.averagePrice)} ${quoteSymbol}`} />
             <ResultMetric label="Price impact" value={`${quote.priceImpactBps.toFixed(1)} bps`} />
             <ResultMetric label="Book levels" value={String(quote.levelsConsumed)} />
-            <ResultMetric label="Venue fee" value={`$${quote.feeBreakdown.venueFeeUsd.toFixed(2)}`} />
+            <ResultMetric label="Venue fee" value={`${tokenAmount(quote.feeBreakdown.venueFeeUsd)} ${quoteSymbol}`} />
           </View>
           <View style={styles.feeCard}>
             <View style={styles.feeHeading}><Text style={styles.aiTitle}>Transparent fee breakdown</Text><View style={styles.feePill}><Text style={styles.feePillText}>{quote.feeBreakdown.status === 'preview' ? 'PREVIEW' : 'ENABLED'}</Text></View></View>
-            <View style={styles.feeRow}><Text style={styles.orderKey}>Searix platform fee</Text><Text style={styles.orderValue}>${quote.feeBreakdown.phoenixFeeUsd.toFixed(2)} · {quote.feeBreakdown.phoenixFeeBps} bps</Text></View>
-            <View style={styles.feeRow}><Text style={styles.orderKey}>Venue fee</Text><Text style={styles.orderValue}>${quote.feeBreakdown.venueFeeUsd.toFixed(2)}</Text></View>
+            <View style={styles.feeRow}><Text style={styles.orderKey}>Searix platform fee</Text><Text style={styles.orderValue}>{tokenAmount(quote.feeBreakdown.phoenixFeeUsd)} {quoteSymbol} · {quote.feeBreakdown.phoenixFeeBps} bps</Text></View>
+            <View style={styles.feeRow}><Text style={styles.orderKey}>Venue fee</Text><Text style={styles.orderValue}>{tokenAmount(quote.feeBreakdown.venueFeeUsd)} {quoteSymbol}</Text></View>
             <Text style={styles.feeDisclosure}>{quote.feeBreakdown.collectionEnabled ? 'Collected only when a wallet-signed trade succeeds.' : 'No Searix fee is currently collected on real, wallet-signed trades.'}</Text>
           </View>
           <View style={styles.venueCard}>
             <View style={styles.aiHeading}><Building2 color={colors.blue} size={17} /><Text style={styles.aiTitle}>Venue comparison</Text></View>
             <Text style={styles.venueDisclosure}>Phoenix quotes the live order book. The Jupiter row, when shown, is a real routed quote fetched from Jupiter's aggregator for this same trade — not an estimate.</Text>
-            {quote.venueQuotes.map((venue) => <View key={venue.venue} style={styles.venueRow}><View style={styles.venueNameLine}><Text style={styles.venueName}>{venue.venue}</Text><Text style={[styles.venueMode, venue.isLive && styles.venueModeLive]}>{venue.isLive ? 'LIVE' : 'UNAVAILABLE'}</Text><Text style={{ color: colors.textSubtle, fontFamily: font.monoMedium, fontSize: 11, marginTop: 4 }}>{side === 'buy' ? `receive ${venue.expectedBase.toFixed(6)} ${market.base}` : `receive ${venue.expectedQuote.toFixed(2)}`}</Text></View><Text style={styles.venueMetric}>{venue.priceImpactBps.toFixed(1)} bps</Text>{venue.best ? <View style={styles.bestPill}><Text style={styles.bestText}>BEST</Text></View> : <View style={styles.bestSpacer} />}</View>)}
+            {quote.venueQuotes.map((venue) => <View key={venue.venue} style={styles.venueRow}><View style={styles.venueNameLine}><Text style={styles.venueName}>{venue.venue}</Text><Text style={[styles.venueMode, venue.isLive && styles.venueModeLive]}>{venue.isLive ? 'LIVE' : 'UNAVAILABLE'}</Text><Text style={{ color: colors.textSubtle, fontFamily: font.monoMedium, fontSize: 11, marginTop: 4 }}>{side === 'buy' ? `receive ${venue.expectedBase.toFixed(6)} ${baseSymbol}` : `receive ${venue.expectedQuote.toFixed(2)} ${quoteSymbol}`}</Text></View><Text style={styles.venueMetric}>{venue.priceImpactBps.toFixed(1)} bps</Text>{venue.best ? <View style={styles.bestPill}><Text style={styles.bestText}>BEST</Text></View> : <View style={styles.bestSpacer} />}</View>)}
           </View>
-          <View style={styles.liquidityLine}><Layers3 color={colors.blue} size={17} /><Text style={styles.liquidityCopy}>Up to <Text style={styles.liquidityStrong}>{formatCompactUsd(quote.safeSizeUsd)}</Text> is visible inside your 25 bps liquidity budget.</Text></View>
-          {quote.topOfBook ? <Text style={styles.depthLine}>Top of book: {quote.topOfBook.size.toLocaleString('en-US', { maximumFractionDigits: 4 })} {market.base} at ${formatPrice(quote.topOfBook.price)}</Text> : null}
+          <View style={styles.liquidityLine}><Layers3 color={colors.blue} size={17} /><Text style={styles.liquidityCopy}>Up to <Text style={styles.liquidityStrong}>{tokenAmount(quote.safeSizeUsd)} {quoteSymbol}</Text> is visible inside your 25 bps liquidity budget.</Text></View>
+          {quote.topOfBook ? <Text style={styles.depthLine}>Top of book: {quote.topOfBook.size.toLocaleString('en-US', { maximumFractionDigits: 4 })} {baseSymbol} at {formatPrice(quote.topOfBook.price)} {quoteSymbol}</Text> : null}
           {quote.warning ? <View style={styles.warning}><ShieldAlert color={colors.amber} size={17} /><Text style={styles.warningText}>{quote.warning}</Text></View> : null}
           <View style={styles.aiCard}><View style={styles.aiHeading}><FileText color={colors.amber} size={17} /><Text style={styles.aiTitle}>Searix explanation</Text></View><Text style={styles.aiCopy}>{quote.explanation}</Text><Text style={styles.aiEvidence}>Based on sequence {market.sequence ?? '—'} · {new Date(quote.observedAt).toLocaleTimeString()}</Text></View>
           <Pressable accessibilityRole="button" accessibilityState={{ busy: saving, disabled: saving || Boolean(savedReceiptId) }} disabled={saving || Boolean(savedReceiptId)} onPress={() => void saveReceipt()} style={({ pressed }) => [styles.receiptButton, pressed && styles.pressed, (saving || savedReceiptId) && styles.receiptButtonSaved]}>{savedReceiptId ? <Check color={colors.green} size={17} /> : <FileCheck2 color={colors.text} size={17} />}<Text style={[styles.receiptButtonText, savedReceiptId && styles.receiptButtonTextSaved]}>{saving ? 'Saving analysis…' : savedReceiptId ? 'Analysis receipt saved' : account ? 'Save analysis receipt' : 'Connect wallet to save'}</Text></Pressable>
@@ -194,9 +228,9 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
                   <Text style={styles.networkPillText}>MAINNET</Text>
                 </View>
               </View>
-              <View style={styles.orderRow}><Text style={styles.orderKey}>Order</Text><Text style={styles.orderValue}>{side === 'buy' ? 'Buy' : 'Sell'} {market.base} · ${quote.requestedUsd.toLocaleString()}</Text></View>
-              <View style={styles.orderRow}><Text style={styles.orderKey}>Expected result</Text><Text style={styles.orderValue}>{quote.fillPercent.toFixed(1)}% visible · ${quote.totalUsd.toLocaleString()}</Text></View>
-              <View style={styles.orderRow}><Text style={styles.orderKey}>Searix fee</Text><Text style={styles.orderValue}>${quote.feeBreakdown.phoenixFeeUsd.toFixed(2)} ({quote.feeBreakdown.phoenixFeeBps} bps)</Text></View>
+              <View style={styles.orderRow}><Text style={styles.orderKey}>Order</Text><Text style={styles.orderValue}>{side === 'buy' ? 'Pay' : 'Sell'} {tokenAmount(reviewed?.input ?? 0)} {inputToken}</Text></View>
+              <View style={styles.orderRow}><Text style={styles.orderKey}>Estimated receive</Text><Text style={styles.orderValue}>{bestVenue ? `${tokenAmount(side === 'buy' ? bestVenue.expectedBase : bestVenue.expectedQuote)} ${side === 'buy' ? baseSymbol : quoteSymbol}` : 'Unavailable'}</Text></View>
+              <View style={styles.orderRow}><Text style={styles.orderKey}>Searix fee</Text><Text style={styles.orderValue}>{tokenAmount(quote.feeBreakdown.phoenixFeeUsd)} {quoteSymbol} ({quote.feeBreakdown.phoenixFeeBps} bps)</Text></View>
 
               {execOrder.state === 'executed' && execOrder.receipt?.transactionSignature ? (
                 <View style={styles.executedCard}>
@@ -234,7 +268,7 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
                       accessibilityRole="button"
                       accessibilityState={{ busy: execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming' }}
                       disabled={execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming'}
-                      onPress={() => void execOrder.execute(side, quote.requestedUsd, quote)}
+                      onPress={() => { if (reviewed) void execOrder.execute(side, reviewed.quoteAmount, quote, reviewed.input); }}
                       style={({ pressed }) => [styles.walletButton, styles.walletButtonActive, pressed && styles.pressed]}
                     >
                       {execOrder.state === 'building' || execOrder.state === 'awaiting-signature' || execOrder.state === 'confirming'

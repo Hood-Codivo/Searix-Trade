@@ -192,7 +192,7 @@ export function useExecuteOrder(market: Market) {
   }, [pendingKey, pendingStorageKey]);
 
   const execute = useCallback(
-    async (side: TradeSide, amountUsd: number, quote: import("@/types/market").ExecutionQuote) => {
+    async (side: TradeSide, amountUsd: number, quote: import("@/types/market").ExecutionQuote, inputLimit?: number) => {
       if (!account) {
         setError('Connect your wallet first.');
         setState('error');
@@ -225,7 +225,7 @@ export function useExecuteOrder(market: Market) {
           outputMint: side === 'buy' ? market.baseMint : market.quoteMint,
           inputDecimals: side === 'buy' ? market.quoteDecimals : market.baseDecimals,
           outputDecimals: side === 'buy' ? market.baseDecimals : market.quoteDecimals,
-          maxInput: side === 'buy' ? amountUsd : venue.expectedBase,
+          maxInput: Math.min(inputLimit ?? Infinity, side === 'buy' ? amountUsd : venue.expectedBase),
           minOutput: (side === 'buy' ? venue.expectedBase : venue.expectedQuote) * 0.978,
         });
         pendingExecutions.set(pendingKey, { marketId, params: {
