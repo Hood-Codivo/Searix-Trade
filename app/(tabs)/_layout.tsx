@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
 import { ArrowLeftRight, Bell, Binoculars, ChartNoAxesCombined, CircleUserRound } from 'lucide-react-native';
-import { colors, font } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font } from '@/theme';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{

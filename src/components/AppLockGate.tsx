@@ -3,12 +3,15 @@ import { AppState, type AppStateStatus, Image, Pressable, StyleSheet, Text, View
 import { ShieldCheck } from 'lucide-react-native';
 import { authenticateToOpen, getAppLockPreference } from '@/services/appLock';
 import { isWalletInteractionActive } from '@/services/walletInteraction';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 
 // Gates the whole app behind one biometric/passcode check -- on cold launch, and again whenever the app
 // returns from the background. Never involved in signing a trade; that stays entirely the wallet's own
 // prompt, so an app-lock check never adds a delay in the middle of a live quote.
 export function AppLockGate({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [locked, setLocked] = useState<boolean | null>(null); // null = still deciding whether a lock applies
   const appState = useRef(AppState.currentState);
 
@@ -61,7 +64,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   root: { flex: 1 },
   overlay: { alignItems: 'center', backgroundColor: '#15161F', bottom: 0, gap: spacing.md, justifyContent: 'center', left: 0, padding: spacing.xl, position: 'absolute', right: 0, top: 0 },
   mark: { height: 72, marginBottom: spacing.lg, width: 72 },

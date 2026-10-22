@@ -1,11 +1,14 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BadgeCheck, ExternalLink } from 'lucide-react-native';
 import { useRegistryEntry } from '@/hooks/useMarkets';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import { formatAddress } from '@/utils/format';
 
 export function AssetRegistryCard({ symbol }: { symbol: string }) {
   const { data: entry, loading } = useRegistryEntry(symbol);
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   if (loading || !entry) return null;
 
   return (
@@ -41,6 +44,8 @@ export function AssetRegistryCard({ symbol }: { symbol: string }) {
 }
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -49,7 +54,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderRadius: radius.lg, borderWidth: 1, marginTop: spacing.xl, padding: spacing.lg },
   headingLine: { alignItems: 'center', flexDirection: 'row', marginBottom: spacing.md },
   iconWell: { alignItems: 'center', backgroundColor: colors.whiteSoft, borderRadius: radius.md, height: 38, justifyContent: 'center', width: 38 },

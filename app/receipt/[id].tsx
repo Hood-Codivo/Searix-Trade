@@ -3,13 +3,16 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ExternalLink } from 'lucide-react-native';
 import { useReceipts } from '@/hooks/useMarkets';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import { formatPrice } from '@/utils/format';
 
 // Full detail of one saved analysis, with its on-chain transaction when there is one.
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading } = useReceipts();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const receipt = data.find((item) => item.id === id);
 
   return (
@@ -70,14 +73,18 @@ export default function ReceiptDetailScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text>{children}</View>;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return <View style={styles.row}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
   back: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },

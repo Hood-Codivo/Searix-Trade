@@ -10,10 +10,23 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { View } from 'react-native';
 import { WalletProvider } from '@/context/WalletProvider';
+import { ThemeProvider, useTheme } from '@/context/ThemeProvider';
 import { AppLockGate } from '@/components/AppLockGate';
-import { colors } from '@/theme';
+import { lightColors } from '@/theme';
 // Side effect only: registers the foreground notification handler (banner + sound) before any screen mounts.
 import '@/services/push';
+
+function AppShell() {
+  const { colors, isDark } = useTheme();
+  return (
+    <AppLockGate>
+      <WalletProvider>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Stack screenOptions={{ contentStyle: { backgroundColor: colors.canvas }, headerShown: false }} />
+      </WalletProvider>
+    </AppLockGate>
+  );
+}
 
 export default function RootLayout() {
   const [sansLoaded] = useSansFonts({
@@ -24,14 +37,11 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  if (!sansLoaded) return <View style={{ backgroundColor: colors.canvas, flex: 1 }} />;
+  if (!sansLoaded) return <View style={{ backgroundColor: lightColors.canvas, flex: 1 }} />;
 
   return (
-    <AppLockGate>
-      <WalletProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ contentStyle: { backgroundColor: colors.canvas }, headerShown: false }} />
-      </WalletProvider>
-    </AppLockGate>
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
   );
 }

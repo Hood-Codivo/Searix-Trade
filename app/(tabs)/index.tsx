@@ -24,7 +24,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { MarketRow } from "@/components/MarketRow";
 import { useMarkets } from "@/hooks/useMarkets";
-import { colors, font, radius, shadow, spacing } from "@/theme";
+import { font, radius, shadow, spacing } from "@/theme";
+import { useTheme } from "@/context/ThemeProvider";
 import { formatPercent } from "@/utils/format";
 
 const TICKER_IDS = ["aaplx-usdc", "tslax-usdc", "nvdax-usdc"];
@@ -38,6 +39,8 @@ const QUICK_ACTIONS = [
 export default function MarketsScreen() {
   const [query, setQuery] = useState("");
   const { data: markets, error, loading, retry } = useMarkets();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   const filtered = useMemo(
     () =>
@@ -211,7 +214,7 @@ export default function MarketsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
   content: { paddingBottom: spacing.xxl, paddingHorizontal: spacing.lg },
   headerWrap: { paddingBottom: spacing.lg, paddingTop: spacing.md },

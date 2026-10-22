@@ -1,13 +1,16 @@
 import { Link } from 'expo-router';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, font, radius, shadow, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, shadow, spacing } from '@/theme';
 import type { Market } from '@/types/market';
 import { formatPercent, formatPrice } from '@/utils/format';
 import { DepthBar } from './DepthBar';
 
 export function MarketRow({ market }: { market: Market }) {
   const positive = market.change24h >= 0;
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Link href={{ pathname: '/market/[id]', params: { id: market.id } }} asChild>
       <Pressable accessibilityHint="Opens market details" accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -37,7 +40,7 @@ export function MarketRow({ market }: { market: Market }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   row: { backgroundColor: colors.surface, borderRadius: radius.lg, gap: spacing.md, minHeight: 124, padding: spacing.lg, ...shadow.raised },
   pressed: { backgroundColor: colors.elevated, transform: [{ scale: 0.98 }] },
   topLine: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },

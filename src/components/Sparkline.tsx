@@ -1,5 +1,5 @@
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
-import { colors } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
 
 function linePath(values: number[], width: number, height: number) {
   const min = Math.min(...values);
@@ -13,6 +13,7 @@ function linePath(values: number[], width: number, height: number) {
 }
 
 export function Sparkline({ values, width = 92, height = 36, positive = true }: { values: number[]; width?: number; height?: number; positive?: boolean }) {
+  const { colors } = useTheme();
   const tone = positive ? colors.green : colors.red;
   const path = linePath(values, width, height);
   return (

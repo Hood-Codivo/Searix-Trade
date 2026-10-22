@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeftRight, ExternalLink } from 'lucide-react-native';
 import { useWallet } from '@/context/WalletProvider';
 import { marketApi } from '@/services/api';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import type { ExecutionReceipt } from '@/types/market';
 import { formatCompactUsd } from '@/utils/format';
 
@@ -16,6 +17,8 @@ export default function TransactionsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const address = status === 'connected' ? account?.address : undefined;
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   const load = useCallback((signal?: AbortSignal) => {
     if (!address) return;
@@ -80,7 +83,7 @@ export default function TransactionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 }, content: { padding: spacing.lg, paddingBottom: spacing.xxl }, header: { paddingBottom: spacing.xl },
   eyebrow: { color: colors.amber, fontFamily: font.monoMedium, fontSize: 10, letterSpacing: 1.1 }, title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 30, letterSpacing: -0.8, marginTop: spacing.sm },
   copy: { color: colors.textMuted, fontFamily: font.sans, fontSize: 13, lineHeight: 20, marginTop: spacing.sm },

@@ -4,7 +4,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { ChevronRight } from 'lucide-react-native';
 import { marketApi } from '@/services/api';
 import type { Market, PositionPnl, WalletBalances } from '@/types/market';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import { sellRouteFor } from '@/utils/tradeLinks';
 
 import { KNOWN_MINTS } from '@/utils/tokenSymbols';
@@ -16,6 +17,8 @@ const shortMint = (mint: string) => `${mint.slice(0, 4)}…${mint.slice(-4)}`;
 // Transactions tab -- this used to also show a separate "Holdings" breakdown built from Searix's own
 // receipts, which went stale the moment a trade happened outside the app; simpler to just show the chain.
 export function WalletPortfolio({ address }: { address: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [balances, setBalances] = useState<WalletBalances | null>(null);
   const [pnl, setPnl] = useState<PositionPnl[]>([]);
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -85,6 +88,8 @@ export function WalletPortfolio({ address }: { address: string }) {
 }
 
 function TokenRow({ label, value, pnl, onPress }: { label: string; value: string; pnl?: PositionPnl; onPress?: () => void }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const unrealized = pnl?.unrealizedPnlUsd ?? null;
   const content = (
     <>
@@ -104,7 +109,7 @@ function TokenRow({ label, value, pnl, onPress }: { label: string; value: string
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>{content}</Pressable>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, marginTop: spacing.lg, padding: spacing.lg },
   titleRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 15 },

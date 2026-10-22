@@ -4,12 +4,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { BellPlus, X } from 'lucide-react-native';
 import { useWallet } from '@/context/WalletProvider';
 import { marketApi } from '@/services/api';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import type { AlertRule, Market } from '@/types/market';
 
 // Set a price or premium threshold on this market. When it's crossed, an alert appears in the Alerts tab,
 // and tapping it opens this market's analysis.
 export function AlertRuleCard({ market }: { market: Market }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { account, status, connect } = useWallet();
   const address = status === 'connected' ? account?.address : undefined;
   const isStock = market.assetClass === 'tokenized-stock' && Boolean(market.reference?.isLive);
@@ -101,7 +104,7 @@ export function AlertRuleCard({ market }: { market: Market }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.xl, borderWidth: 1, marginTop: spacing.xl, padding: spacing.lg },
   titleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 15 },

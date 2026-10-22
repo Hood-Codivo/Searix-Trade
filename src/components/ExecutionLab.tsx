@@ -6,7 +6,8 @@ import { ErrorToast } from '@/components/ErrorToast';
 import { useWallet } from '@/context/WalletProvider';
 import { useExecuteOrder } from '@/hooks/useMarkets';
 import { marketApi } from '@/services/api';
-import { colors, font, radius, shadow, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, shadow, spacing } from '@/theme';
 import type { ExecutionNetwork, ExecutionQuote, Market, TradeSide } from '@/types/market';
 import { KNOWN_MINTS } from '@/utils/tokenSymbols';
 import { toQuoteAmount } from '@/utils/orderAmount';
@@ -28,6 +29,8 @@ const signLabels: Record<string, string> = {
 };
 
 export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; initialSide?: TradeSide }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { account, network, connect } = useWallet();
   const execOrder = useExecuteOrder(market);
   const [side, setSide] = useState<TradeSide>(initialSide);
@@ -290,10 +293,12 @@ export function ExecutionLab({ market, initialSide = 'buy' }: { market: Market; 
 }
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text></View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   lab: { backgroundColor: colors.surface, borderRadius: radius.xl, marginTop: spacing.xl, padding: spacing.lg, ...shadow.card },
   headingLine: { alignItems: 'center', flexDirection: 'row' }, iconWell: { alignItems: 'center', backgroundColor: colors.amberGlow, borderRadius: radius.md, height: 44, justifyContent: 'center', width: 44 }, headingCopy: { flex: 1, marginLeft: spacing.md },
   eyebrow: { color: colors.amber, fontFamily: font.monoMedium, fontSize: 10, letterSpacing: 1 }, title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 20, letterSpacing: -0.3, marginTop: 2 }, previewPill: { alignItems: 'center', backgroundColor: colors.whiteSoft, borderRadius: radius.pill, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 6 }, previewDot: { backgroundColor: colors.green, borderRadius: 4, height: 7, width: 7 }, previewText: { color: colors.textMuted, fontFamily: font.sansMedium, fontSize: 11 },

@@ -1,11 +1,14 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import type { ExecutionReceipt } from '@/types/market';
 
 // One saved analysis. Tapping it opens the full receipt.
 export function ReceiptCard({ receipt }: { receipt: ExecutionReceipt }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Pressable accessibilityRole="button" onPress={() => router.push(`/receipt/${receipt.id}` as Href)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.row}>
@@ -20,7 +23,7 @@ export function ReceiptCard({ receipt }: { receipt: ExecutionReceipt }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 14 },

@@ -5,11 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { ReceiptCard } from '@/components/ReceiptCard';
 import { useReceipts } from '@/hooks/useMarkets';
-import { colors, font, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, spacing } from '@/theme';
 
 // Every saved analysis, newest first. Long lists scroll here instead of on the profile.
 export default function AllReceiptsScreen() {
   const { data, loading, error, retry } = useReceipts();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   useFocusEffect(useCallback(() => { void retry(); }, [retry]));
 
   return (
@@ -36,7 +39,7 @@ export default function AllReceiptsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
   back: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },

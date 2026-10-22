@@ -8,9 +8,11 @@ import { usePlatformInfo, useReceipts } from '@/hooks/useMarkets';
 import { WalletPortfolio } from '@/components/WalletPortfolio';
 import { NotificationsToggle } from '@/components/NotificationsToggle';
 import { AppLockToggle } from '@/components/AppLockToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ReceiptCard } from '@/components/ReceiptCard';
 import { router, type Href } from 'expo-router';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import { formatAddress, formatCompactUsd } from '@/utils/format';
 
 export default function Profile() {
@@ -18,6 +20,8 @@ export default function Profile() {
   const [copied, setCopied] = useState(false);
   const { fees, revenue } = usePlatformInfo();
   const receipts = useReceipts();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   const copyAddress = async () => {
     if (!account) return;
@@ -32,6 +36,7 @@ export default function Profile() {
         <Text style={styles.eyebrow}>WALLET</Text>
         <Text style={styles.title}>Your wallet</Text>
         <AppLockToggle />
+        <ThemeToggle />
 
         {status === 'connected' && account ? (
           <View style={styles.card}>
@@ -156,7 +161,7 @@ export default function Profile() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   receiptGap: { marginTop: spacing.md },

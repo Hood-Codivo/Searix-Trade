@@ -1,12 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react-native';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import type { Market } from '@/types/market';
 import { formatPrice } from '@/utils/format';
 
 // How far the tokenized stock trades from the real share price it tracks. A premium means the token is
 // dearer than the share; a discount means cheaper. Only shown when a live reference exists.
 export function PremiumCard({ market }: { market: Market }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const reference = market.reference;
   if (!reference || !reference.isLive || !market.underlyingSymbol) return null;
   const premium = reference.premiumBps / 100;
@@ -33,7 +36,7 @@ export function PremiumCard({ market }: { market: Market }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.xl, borderWidth: 1, marginTop: spacing.xl, padding: spacing.lg },
   eyebrow: { color: colors.amber, fontFamily: font.monoMedium, fontSize: 10, letterSpacing: 1.1 },
   headline: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },

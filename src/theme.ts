@@ -1,7 +1,7 @@
 // Light theme, matching the reference design exactly: lavender-white canvas, white cards,
 // indigo/violet as the primary accent (token names kept as `amber*` since that's what every
 // component already calls "the brand accent" -- only the values changed).
-export const colors = {
+export const lightColors = {
   canvas: '#F2F3FA',
   surface: '#FFFFFF',
   elevated: '#F6F6FC',
@@ -27,6 +27,38 @@ export const colors = {
   textInverse: '#F4F1E8',
 } as const;
 
+export type ThemeColors = Record<keyof typeof lightColors, string>;
+
+// Dark counterpart: same token names/shape as `lightColors` so a component only ever needs one
+// `colors` value from `useTheme()` and never branches on scheme itself.
+export const darkColors: ThemeColors = {
+  canvas: '#0E0F16',
+  surface: '#171822',
+  elevated: '#1D1F2B',
+  border: '#272938',
+  borderStrong: '#363850',
+  text: '#F2F2F7',
+  textMuted: '#9496AC',
+  textSubtle: '#6B6D83',
+  amber: '#8B7CF7',
+  amberSoft: '#2A2550',
+  green: '#34D399',
+  greenSoft: '#123327',
+  red: '#F87171',
+  redSoft: '#3A1D1F',
+  blue: '#60A5FA',
+  overlay: 'rgba(0, 0, 0, 0.6)',
+  amberGlow: 'rgba(139, 124, 247, 0.18)',
+  greenGlow: 'rgba(52, 211, 153, 0.16)',
+  whiteSoft: 'rgba(255, 255, 255, 0.06)',
+  gradientStart: '#6D5DF6',
+  gradientEnd: '#8B7CF7',
+  canvasInverse: '#F2F3FA',
+  textInverse: '#15161F',
+};
+
+export type ColorScheme = 'light' | 'dark';
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -44,8 +76,9 @@ export const radius = {
   pill: 999,
 } as const;
 
-// Soft elevation for cards -- cross-platform (shadow* for iOS/web, elevation for Android).
-// Kept subtle and consistent so depth reads as one system rather than per-card guesswork.
+// Soft elevation for cards -- cross-platform (shadow* for iOS/web, elevation for Android). Kept
+// subtle and consistent so depth reads as one system rather than per-card guesswork. Shadows read
+// fine unchanged in dark mode too (low opacity, barely visible either way), so these stay static.
 export const shadow = {
   card: {
     shadowColor: '#2B2D66',

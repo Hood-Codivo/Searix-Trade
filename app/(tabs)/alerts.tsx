@@ -4,15 +4,18 @@ import { Bell, RefreshCw, TriangleAlert } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAlerts } from '@/hooks/useMarkets';
 import { useWallet } from '@/context/WalletProvider';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 import type { Alert, AlertSeverity } from '@/types/market';
 
-const SEVERITY_COLOR: Record<AlertSeverity, string> = { watch: colors.amber, warning: colors.red };
 const SEVERITY_LABEL: Record<AlertSeverity, string> = { watch: 'WATCH', warning: 'WARNING' };
 
 export default function AlertsScreen() {
   const { account } = useWallet();
   const { data: alerts, loading, error, retry } = useAlerts(account?.address);
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const SEVERITY_COLOR: Record<AlertSeverity, string> = { watch: colors.amber, warning: colors.red };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -62,7 +65,7 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   header: { paddingBottom: spacing.xl },

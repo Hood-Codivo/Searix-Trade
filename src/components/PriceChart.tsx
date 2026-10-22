@@ -1,6 +1,7 @@
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, font, radius } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius } from '@/theme';
 import { formatPrice } from '@/utils/format';
 
 function pathFor(values: number[], width: number, height: number) {
@@ -18,6 +19,8 @@ function pathFor(values: number[], width: number, height: number) {
 const BUBBLE_WIDTH = 74;
 
 export function PriceChart({ values, width, height = 210 }: { values: number[]; width: number; height?: number }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   if (values.length === 0) {
     return (
       <View accessibilityLabel="Recent market price chart" style={{ alignItems: 'center', height, justifyContent: 'center' }}>
@@ -48,7 +51,7 @@ export function PriceChart({ values, width, height = 210 }: { values: number[]; 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   bubble: {
     alignItems: 'center',
     backgroundColor: colors.elevated,

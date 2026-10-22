@@ -12,7 +12,8 @@ import { MetricTile } from '@/components/MetricTile';
 import { PriceChart } from '@/components/PriceChart';
 import { QualityBadge } from '@/components/QualityBadge';
 import { useCandles, useMarket } from '@/hooks/useMarkets';
-import { colors, font, radius, shadow, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, shadow, spacing } from '@/theme';
 import { formatCompactUsd, formatPercent, formatPrice } from '@/utils/format';
 import type { CandleRange } from '@/types/market';
 
@@ -31,6 +32,8 @@ export default function MarketDetail() {
   const { data: candles } = useCandles(id, CANDLE_RANGE);
   const [chartWidth, setChartWidth] = useState(340);
   const measure = (event: LayoutChangeEvent) => setChartWidth(event.nativeEvent.layout.width);
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   if (loading) return <SafeAreaView style={styles.safe}><View style={styles.notFound}><Text style={styles.notFoundTitle}>Loading market</Text><Text style={styles.ticketCopy}>Checking the latest market snapshot.</Text></View></SafeAreaView>;
   if (!market) return <SafeAreaView style={styles.safe}><View style={styles.notFound}><Text style={styles.notFoundTitle}>Couldn’t load market</Text><Text style={styles.ticketCopy}>{error ?? 'That market is not being tracked.'}</Text><Pressable onPress={retry} style={styles.secondaryButton}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable onPress={() => router.back()} style={styles.secondaryButton}><Text style={styles.secondaryText}>Go back</Text></Pressable></View></SafeAreaView>;
@@ -79,7 +82,7 @@ export default function MarketDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safe: { backgroundColor: colors.canvas, flex: 1 }, flex: { flex: 1 }, content: { padding: spacing.lg },
   nav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, iconButton: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
   navTitle: { alignItems: 'center' }, pair: { color: colors.text, fontFamily: font.sansSemiBold, fontSize: 16 }, venueLine: { alignItems: 'center', flexDirection: 'row', gap: 5, marginTop: 2 }, venue: { color: colors.textSubtle, fontFamily: font.sans, fontSize: 11 },

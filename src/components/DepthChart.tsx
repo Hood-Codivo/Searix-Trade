@@ -1,6 +1,7 @@
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, font, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, spacing } from '@/theme';
 import type { OrderLevel } from '@/types/market';
 
 function cumulative(levels: OrderLevel[]) {
@@ -9,6 +10,8 @@ function cumulative(levels: OrderLevel[]) {
 }
 
 export function DepthChart({ bids, asks, width, height = 150 }: { bids: OrderLevel[]; asks: OrderLevel[]; width: number; height?: number }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const bidLevels = cumulative(bids);
   const askLevels = cumulative(asks);
   const max = Math.max(bidLevels.at(-1)?.cumulative ?? 1, askLevels.at(-1)?.cumulative ?? 1);
@@ -25,4 +28,4 @@ export function DepthChart({ bids, asks, width, height = 150 }: { bids: OrderLev
   </View>;
 }
 
-const styles = StyleSheet.create({ legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }, legendText: { fontFamily: font.sansMedium, fontSize: 11 }, mid: { color: colors.textSubtle, fontFamily: font.mono, fontSize: 10 } });
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({ legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }, legendText: { fontFamily: font.sansMedium, fontSize: 11 }, mid: { color: colors.textSubtle, fontFamily: font.mono, fontSize: 10 } });

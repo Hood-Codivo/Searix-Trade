@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
 import { Fingerprint } from 'lucide-react-native';
 import { getAppLockPreference, isAppLockAvailable, setAppLockPreference } from '@/services/appLock';
-import { colors, font, radius, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, spacing } from '@/theme';
 
 // On/off for the app-open biometric lock. Local-only: no wallet needed, nothing sent to the backend --
 // this guards the phone screen, not your funds, so it doesn't belong to any one connected wallet.
 export function AppLockToggle() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,7 +46,7 @@ export function AppLockToggle() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, marginTop: spacing.lg, padding: spacing.lg },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   iconWell: { alignItems: 'center', backgroundColor: colors.amberSoft, borderRadius: radius.md, height: 40, justifyContent: 'center', width: 40 },

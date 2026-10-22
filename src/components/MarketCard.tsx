@@ -1,7 +1,8 @@
 import { Link } from 'expo-router';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, font, radius, shadow, spacing } from '@/theme';
+import { useTheme } from '@/context/ThemeProvider';
+import { font, radius, shadow, spacing } from '@/theme';
 import type { Market } from '@/types/market';
 import { formatPercent, formatPrice } from '@/utils/format';
 import { PriceChart } from './PriceChart';
@@ -17,6 +18,8 @@ function sampleEvenly(values: number[], count: number): number[] {
 }
 
 export function MarketCard({ market, width }: { market: Market; width: number }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const positive = market.change24h >= 0;
   const chartValues = sampleEvenly(market.candles, 16);
   return (
@@ -42,7 +45,7 @@ export function MarketCard({ market, width }: { market: Market; width: number })
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.raised },
   pressed: { backgroundColor: colors.elevated, transform: [{ scale: 0.98 }] },
   identity: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
